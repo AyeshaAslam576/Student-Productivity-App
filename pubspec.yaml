@@ -1,0 +1,127 @@
+name: brainup
+description: "BrainUp — Premium Student Productivity App"
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.5.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  cupertino_icons: ^1.0.8
+
+  # Firebase
+  firebase_core: ^3.6.0
+  firebase_auth: ^5.3.1
+  cloud_firestore: ^5.4.4
+  firebase_messaging: ^15.1.3
+
+  # State Management
+  provider: ^6.1.2
+
+  # UI & Fonts
+  google_fonts: ^6.2.1
+  flutter_animate: ^4.5.0
+  shimmer: ^3.0.0
+  percent_indicator: ^4.2.3
+
+  # Charts
+  fl_chart: ^0.69.0
+
+  # Media & Files
+  image_picker: ^1.1.2
+
+  # Camera & scanning
+  camera: ^0.10.5+9
+  cunning_document_scanner: ^1.0.5   # real edge-detection scanner (replaces basic camera)
+  flutter_image_compress: ^2.1.0
+  image: ^4.1.3
+  image_cropper: ^8.0.2              # v7.1.0+ drops legacy Android v1 embedding; 8.0.2 widens `web` to coexist with share_plus 10.x
+  # Do NOT add google_mlkit_document_scanner here: it conflicts with cunning_document_scanner
+  # on the same GMS scanning activity (null MethodChannel.Result crash on "Next").
+
+  # PDF
+  pdf: ^3.10.8
+  printing: ^5.12.0
+  pdfx: ^2.6.0                       # high-quality PDF viewer (replaces existing viewer)
+  syncfusion_flutter_pdfviewer: ^27.1.48
+
+  # File & share
+  file_picker: ^8.0.3
+  share_plus: ^10.1.4         # bumped from ^9.0.0 to resolve conflict with just_audio (web ^1.0.0)
+  open_filex: ^4.3.4
+  path_provider: ^2.1.3
+  path: ^1.9.0
+  receive_sharing_intent: any
+
+  # OCR
+  google_mlkit_text_recognition: ^0.13.0
+
+  # QR
+  qr_flutter: ^4.1.0
+  mobile_scanner: ^5.1.0
+
+  # Storage
+  hive: ^2.2.3
+  hive_flutter: ^1.1.0
+
+  # UI helpers
+  dotted_border: ^2.1.0
+  lottie: ^3.1.0
+  flutter_colorpicker: any
+  super_editor: any
+
+  # Notifications
+  flutter_local_notifications: ^18.0.1
+  flutter_timezone: ^4.1.1   # maintained fork of flutter_native_timezone (returns String)
+  timezone: ^0.9.4
+
+  # Storage & Prefs
+  shared_preferences: ^2.3.2
+
+  # Google Sign-In
+  google_sign_in: ^6.2.2
+
+  # Networking & Images
+  cached_network_image: ^3.4.1
+  http: ^1.2.2
+  just_audio: ^0.10.5
+
+  # SVG
+  flutter_svg: ^2.0.10+1
+
+  # Environment
+  flutter_dotenv: ^5.2.1
+
+  # Navigation
+  go_router: ^14.3.0
+
+  # Calendar
+  table_calendar: ^3.1.2
+
+  # Slidable list items
+  flutter_slidable: ^3.1.1
+
+  # Staggered animations
+  flutter_staggered_animations: ^1.1.1
+
+  # Intl
+  intl: ^0.19.0
+
+  # Connectivity
+  connectivity_plus: ^6.1.0
+  archive: ^4.0.9
+  flutter_tts: ^4.2.3
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - .env
+    - assets/sounds/
