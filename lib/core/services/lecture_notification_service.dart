@@ -303,6 +303,7 @@ class LectureNotificationService {
     required int notificationId,
   }) async {
     if (!_initialized) await initialize();
+    assert(tz.local.name.isNotEmpty, 'Timezone must be set before scheduling');
 
     const weekdays = [
       'Monday', 'Tuesday', 'Wednesday', 'Thursday',
@@ -460,7 +461,16 @@ class LectureNotificationService {
     }
 
     if (showMorning) {
-      await scheduleMorningDigest(allLectures: lectures, notificationId: 99990);
+      try {
+        await scheduleMorningDigest(
+          allLectures: lectures,
+          notificationId: 99990,
+        );
+      } catch (e) {
+        debugPrint(
+          '[LectureNotificationService] Morning digest scheduling failed: $e',
+        );
+      }
     }
   }
 

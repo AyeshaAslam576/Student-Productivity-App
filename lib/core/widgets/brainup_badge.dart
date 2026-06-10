@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import '../theme/app_palette.dart';
 import '../theme/app_colors.dart';
-import '../theme/app_text_styles.dart';
 import '../theme/app_spacing.dart';
 
 enum BadgePriority { high, medium, low }
@@ -14,10 +14,11 @@ class BrainUpPriorityBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     final (label, color) = switch (priority) {
-      BadgePriority.high => ('HIGH', AppColors.error),
-      BadgePriority.medium => ('MED', AppColors.warning),
-      BadgePriority.low => ('LOW', AppColors.success),
+      BadgePriority.high => ('HIGH', colors.error),
+      BadgePriority.medium => ('MED', colors.warning),
+      BadgePriority.low => ('LOW', colors.success),
     };
 
     return _Badge(label: label, color: color);
@@ -31,6 +32,8 @@ class BrainUpPriorityBadge extends StatelessWidget {
     };
   }
 
+  /// Theme-agnostic priority color (dark palette). Prefer `context.colors`
+  /// when a [BuildContext] is available.
   static Color colorFromString(String s) {
     return switch (s.toLowerCase()) {
       'high' => AppColors.error,
@@ -47,10 +50,11 @@ class BrainUpStatusBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     final (label, color) = switch (status) {
-      BadgeStatus.pending => ('PENDING', AppColors.info),
-      BadgeStatus.completed => ('DONE', AppColors.success),
-      BadgeStatus.overdue => ('OVERDUE', AppColors.error),
+      BadgeStatus.pending => ('PENDING', colors.info),
+      BadgeStatus.completed => ('DONE', colors.success),
+      BadgeStatus.overdue => ('OVERDUE', colors.error),
     };
 
     return _Badge(label: label, color: color);
@@ -72,13 +76,13 @@ class BrainUpSubjectChip extends StatelessWidget {
         vertical: small ? 2 : 4,
       ),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.15),
+        color: color.withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
-        border: Border.all(color: color.withOpacity(0.4), width: 0.5),
+        border: Border.all(color: color.withValues(alpha: 0.4), width: 0.5),
       ),
       child: Text(
         subject,
-        style: AppTextStyles.labelSmall.copyWith(
+        style: context.text.labelSmall.copyWith(
           color: color,
           fontSize: small ? 10 : 11,
         ),
@@ -96,12 +100,13 @@ class BrainUpTypeBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     final color = switch (type.toLowerCase()) {
-      'lab' => AppColors.warning,
-      'quiz' => AppColors.error,
-      'project' => AppColors.info,
-      'assignment' => AppColors.accent,
-      _ => AppColors.textSecondary,
+      'lab' => colors.warning,
+      'quiz' => colors.error,
+      'project' => colors.info,
+      'assignment' => colors.accent,
+      _ => colors.textSecondary,
     };
 
     return _Badge(label: type.toUpperCase(), color: color);
@@ -119,13 +124,13 @@ class _Badge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.15),
+        color: color.withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: color.withOpacity(0.4), width: 0.5),
+        border: Border.all(color: color.withValues(alpha: 0.4), width: 0.5),
       ),
       child: Text(
         label,
-        style: AppTextStyles.labelSmall.copyWith(color: color),
+        style: context.text.labelSmall.copyWith(color: color),
       ),
     );
   }
@@ -139,8 +144,8 @@ class BrainUpNotificationDot extends StatelessWidget {
     return Container(
       width: 8,
       height: 8,
-      decoration: const BoxDecoration(
-        color: AppColors.error,
+      decoration: BoxDecoration(
+        color: context.colors.error,
         shape: BoxShape.circle,
       ),
     );

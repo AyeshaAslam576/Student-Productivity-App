@@ -3,9 +3,10 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../../core/navigation/back_navigation.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_palette.dart';
 import '../../../core/theme/app_spacing.dart';
-import '../../../core/theme/app_text_styles.dart';
 import '../../../core/widgets/brainup_app_bar.dart';
 import '../../../core/widgets/brainup_empty_state.dart';
 import '../models/document_model.dart';
@@ -48,18 +49,21 @@ class _DocumentLibraryScreenState extends State<DocumentLibraryScreen> {
   Widget build(BuildContext context) {
     final vm = context.watch<DocumentViewModel>();
     final hasSubject = widget.initialSubject != null;
+    final colors = context.colors;
 
     return Scaffold(
-      backgroundColor: AppColors.surface,
+      backgroundColor: colors.surface,
       appBar: BrainUpAppBar(
         title: widget.initialSubject ?? 'All Documents',
+        leading: brainUpBackButton(context,
+            fallback: '/documents', iconColor: colors.textPrimary),
         actions: [
           IconButton(
             tooltip: 'Sort',
             onPressed: () => _showSortSheet(context, vm),
-            icon: const Icon(
+            icon: Icon(
               Icons.sort_rounded,
-              color: AppColors.textSecondary,
+              color: colors.textSecondary,
             ),
           ),
           IconButton(
@@ -67,7 +71,7 @@ class _DocumentLibraryScreenState extends State<DocumentLibraryScreen> {
             onPressed: () => setState(() => _grid = !_grid),
             icon: Icon(
               _grid ? Icons.list_rounded : Icons.grid_view_rounded,
-              color: AppColors.textSecondary,
+              color: colors.textSecondary,
             ),
           ),
         ],
@@ -75,7 +79,7 @@ class _DocumentLibraryScreenState extends State<DocumentLibraryScreen> {
       floatingActionButton: FloatingActionButton(
         mini: true,
         onPressed: () => _showAddSheet(context, vm),
-        backgroundColor: AppColors.accent,
+        backgroundColor: colors.accent,
         foregroundColor: Colors.white,
         elevation: 4,
         child: const Icon(Icons.add_rounded),
@@ -117,54 +121,60 @@ class _DocumentLibraryScreenState extends State<DocumentLibraryScreen> {
     showModalBottomSheet<void>(
       context: context,
       backgroundColor: Colors.transparent,
-      builder: (ctx) => Container(
-        padding: const EdgeInsets.fromLTRB(20, 14, 20, 28),
-        decoration: const BoxDecoration(
-          color: AppColors.surfaceCard,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            const _SheetHandle(),
-            const SizedBox(height: 16),
-            Text('Sort by', style: AppTextStyles.h4),
-            const SizedBox(height: 12),
-            ...SortOption.values.map((option) {
-              final selected = vm.sortBy == option;
-              return ListTile(
-                contentPadding: EdgeInsets.zero,
-                visualDensity: VisualDensity.compact,
-                leading: Icon(
-                  _sortIcon(option),
-                  color: selected ? AppColors.accent : AppColors.textSecondary,
-                  size: 20,
-                ),
-                title: Text(
-                  _sortLabel(option),
-                  style: AppTextStyles.body.copyWith(
-                    color: selected ? AppColors.accent : AppColors.textPrimary,
-                    fontWeight:
-                        selected ? FontWeight.w600 : FontWeight.w500,
+      builder: (ctx) {
+        final colors = ctx.colors;
+        return Container(
+          padding: const EdgeInsets.fromLTRB(20, 14, 20, 28),
+          decoration: BoxDecoration(
+            color: colors.surfaceCard,
+            borderRadius:
+                const BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const _SheetHandle(),
+              const SizedBox(height: 16),
+              Text('Sort by', style: ctx.text.h4),
+              const SizedBox(height: 12),
+              ...SortOption.values.map((option) {
+                final selected = vm.sortBy == option;
+                return ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  visualDensity: VisualDensity.compact,
+                  leading: Icon(
+                    _sortIcon(option),
+                    color:
+                        selected ? colors.accent : colors.textSecondary,
+                    size: 20,
                   ),
-                ),
-                trailing: selected
-                    ? const Icon(
-                        Icons.check_rounded,
-                        color: AppColors.accent,
-                        size: 20,
-                      )
-                    : null,
-                onTap: () {
-                  vm.setSortOption(option);
-                  Navigator.pop(ctx);
-                },
-              );
-            }),
-          ],
-        ),
-      ),
+                  title: Text(
+                    _sortLabel(option),
+                    style: ctx.text.body.copyWith(
+                      color:
+                          selected ? colors.accent : colors.textPrimary,
+                      fontWeight:
+                          selected ? FontWeight.w600 : FontWeight.w500,
+                    ),
+                  ),
+                  trailing: selected
+                      ? Icon(
+                          Icons.check_rounded,
+                          color: colors.accent,
+                          size: 20,
+                        )
+                      : null,
+                  onTap: () {
+                    vm.setSortOption(option);
+                    Navigator.pop(ctx);
+                  },
+                );
+              }),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -172,55 +182,59 @@ class _DocumentLibraryScreenState extends State<DocumentLibraryScreen> {
     showModalBottomSheet<void>(
       context: context,
       backgroundColor: Colors.transparent,
-      builder: (ctx) => Container(
-        padding: const EdgeInsets.fromLTRB(20, 14, 20, 28),
-        decoration: const BoxDecoration(
-          color: AppColors.surfaceCard,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            const _SheetHandle(),
-            const SizedBox(height: 16),
-            Text('Add document', style: AppTextStyles.h4),
-            const SizedBox(height: 12),
-            _AddTile(
-              icon: Icons.document_scanner_rounded,
-              color: AppColors.accent,
-              title: 'Scan with camera',
-              subtitle: 'Capture pages with edge detection',
-              onTap: () {
-                Navigator.pop(ctx);
-                vm.startEdgeScan(context);
-              },
-            ),
-            const SizedBox(height: 8),
-            _AddTile(
-              icon: Icons.upload_file_rounded,
-              color: AppColors.info,
-              title: 'Import PDF',
-              subtitle: 'Pick a PDF from your device',
-              onTap: () {
-                Navigator.pop(ctx);
-                vm.importPdf();
-              },
-            ),
-            const SizedBox(height: 8),
-            _AddTile(
-              icon: Icons.photo_library_rounded,
-              color: AppColors.success,
-              title: 'Import from gallery',
-              subtitle: 'Use images already on your phone',
-              onTap: () {
-                Navigator.pop(ctx);
-                vm.importFromGallery();
-              },
-            ),
-          ],
-        ),
-      ),
+      builder: (ctx) {
+        final colors = ctx.colors;
+        return Container(
+          padding: const EdgeInsets.fromLTRB(20, 14, 20, 28),
+          decoration: BoxDecoration(
+            color: colors.surfaceCard,
+            borderRadius:
+                const BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const _SheetHandle(),
+              const SizedBox(height: 16),
+              Text('Add document', style: ctx.text.h4),
+              const SizedBox(height: 12),
+              _AddTile(
+                icon: Icons.document_scanner_rounded,
+                color: colors.accent,
+                title: 'Scan with camera',
+                subtitle: 'Capture pages with edge detection',
+                onTap: () {
+                  Navigator.pop(ctx);
+                  vm.startEdgeScan(context);
+                },
+              ),
+              const SizedBox(height: 8),
+              _AddTile(
+                icon: Icons.upload_file_rounded,
+                color: colors.info,
+                title: 'Import PDF',
+                subtitle: 'Pick a PDF from your device',
+                onTap: () {
+                  Navigator.pop(ctx);
+                  vm.importPdf();
+                },
+              ),
+              const SizedBox(height: 8),
+              _AddTile(
+                icon: Icons.photo_library_rounded,
+                color: colors.success,
+                title: 'Import from gallery',
+                subtitle: 'Use images already on your phone',
+                onTap: () {
+                  Navigator.pop(ctx);
+                  vm.importFromGallery();
+                },
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -301,7 +315,7 @@ class _SubjectHeader extends StatelessWidget {
               subject,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: AppTextStyles.h3.copyWith(color: Colors.white),
+              style: context.text.h3.copyWith(color: Colors.white),
             ),
           ),
           Container(
@@ -313,7 +327,7 @@ class _SubjectHeader extends StatelessWidget {
             ),
             child: Text(
               docCount == 1 ? '1 doc' : '$docCount docs',
-              style: AppTextStyles.caption.copyWith(
+              style: context.text.caption.copyWith(
                 color: Colors.white,
                 fontWeight: FontWeight.w600,
               ),
@@ -345,8 +359,8 @@ class _DocumentContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (isWaiting) {
-      return const Center(
-        child: CircularProgressIndicator(color: AppColors.accent),
+      return Center(
+        child: CircularProgressIndicator(color: context.colors.accent),
       );
     }
     if (docs.isEmpty) {
@@ -424,21 +438,23 @@ class _DocumentGridCard extends StatelessWidget {
     }
   }
 
-  Color get _typeColor {
+  Color _typeColor(BuildContext context) {
+    final colors = context.colors;
     switch (doc.type) {
       case DocumentType.pdf:
-        return AppColors.error;
+        return colors.error;
       case DocumentType.image:
-        return AppColors.info;
+        return colors.info;
       case DocumentType.scanned:
-        return AppColors.accent;
+        return colors.accent;
       case DocumentType.generated:
-        return AppColors.success;
+        return colors.success;
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     final subjectColor =
         doc.subjectTag != null ? AppColors.subjectColor(doc.subjectTag!) : null;
 
@@ -446,9 +462,9 @@ class _DocumentGridCard extends StatelessWidget {
       onTap: onTap,
       child: Container(
         decoration: BoxDecoration(
-          color: AppColors.surfaceCard,
+          color: colors.surfaceCard,
           borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
-          border: Border.all(color: AppColors.surfaceBorder),
+          border: Border.all(color: colors.surfaceBorder),
         ),
         clipBehavior: Clip.antiAlias,
         child: Column(
@@ -457,7 +473,7 @@ class _DocumentGridCard extends StatelessWidget {
             Expanded(
               child: Stack(
                 children: [
-                  Positioned.fill(child: _buildPreview()),
+                  Positioned.fill(child: _buildPreview(context)),
                   Positioned(
                     top: 8,
                     right: 8,
@@ -475,7 +491,7 @@ class _DocumentGridCard extends StatelessWidget {
                               : Icons.star_outline_rounded,
                           size: 16,
                           color: doc.isFavorite
-                              ? AppColors.warning
+                              ? colors.warning
                               : Colors.white70,
                         ),
                       ),
@@ -493,9 +509,9 @@ class _DocumentGridCard extends StatelessWidget {
                     doc.title,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: AppTextStyles.h5.copyWith(
+                    style: context.text.h5.copyWith(
                       fontSize: 13,
-                      color: AppColors.textPrimary,
+                      color: colors.textPrimary,
                     ),
                   ),
                   const SizedBox(height: 3),
@@ -503,8 +519,8 @@ class _DocumentGridCard extends StatelessWidget {
                     '${doc.pageCountLabel} · ${doc.formattedSize}',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: AppTextStyles.caption.copyWith(
-                      color: AppColors.textMuted,
+                    style: context.text.caption.copyWith(
+                      color: colors.textMuted,
                       fontSize: 10,
                     ),
                   ),
@@ -526,7 +542,7 @@ class _DocumentGridCard extends StatelessWidget {
                         ),
                         child: Text(
                           doc.subjectTag!,
-                          style: AppTextStyles.caption.copyWith(
+                          style: context.text.caption.copyWith(
                             color: subjectColor,
                             fontWeight: FontWeight.w600,
                             fontSize: 10,
@@ -544,7 +560,7 @@ class _DocumentGridCard extends StatelessWidget {
     );
   }
 
-  Widget _buildPreview() {
+  Widget _buildPreview(BuildContext context) {
     final thumb = doc.thumbnailPath;
     if (thumb != null && thumb.isNotEmpty) {
       final file = File(thumb);
@@ -552,27 +568,29 @@ class _DocumentGridCard extends StatelessWidget {
         return Image.file(
           file,
           fit: BoxFit.cover,
-          errorBuilder: (_, __, ___) => _placeholder(),
+          errorBuilder: (_, __, ___) => _placeholder(context),
         );
       }
     }
-    return _placeholder();
+    return _placeholder(context);
   }
 
-  Widget _placeholder() {
+  Widget _placeholder(BuildContext context) {
+    final colors = context.colors;
+    final typeColor = _typeColor(context);
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            _typeColor.withOpacity(0.18),
-            AppColors.surfaceElevated,
+            typeColor.withOpacity(0.18),
+            colors.surfaceElevated,
           ],
         ),
       ),
       alignment: Alignment.center,
-      child: Icon(_typeIcon, size: 64, color: _typeColor.withOpacity(0.65)),
+      child: Icon(_typeIcon, size: 64, color: typeColor.withOpacity(0.65)),
     );
   }
 }
@@ -596,8 +614,9 @@ class _AddTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return Material(
-      color: AppColors.surfaceElevated,
+      color: colors.surfaceElevated,
       borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
       child: InkWell(
         borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
@@ -622,22 +641,22 @@ class _AddTile extends StatelessWidget {
                   children: [
                     Text(
                       title,
-                      style: AppTextStyles.body.copyWith(
+                      style: context.text.body.copyWith(
                         fontWeight: FontWeight.w600,
                       ),
                     ),
                     const SizedBox(height: 2),
                     Text(
                       subtitle,
-                      style: AppTextStyles.caption
-                          .copyWith(color: AppColors.textMuted),
+                      style: context.text.caption
+                          .copyWith(color: colors.textMuted),
                     ),
                   ],
                 ),
               ),
-              const Icon(
+              Icon(
                 Icons.chevron_right_rounded,
-                color: AppColors.textMuted,
+                color: colors.textMuted,
               ),
             ],
           ),
@@ -659,7 +678,7 @@ class _SheetHandle extends StatelessWidget {
         width: 36,
         height: 4,
         decoration: BoxDecoration(
-          color: AppColors.surfaceBorder,
+          color: context.colors.surfaceBorder,
           borderRadius: BorderRadius.circular(2),
         ),
       ),

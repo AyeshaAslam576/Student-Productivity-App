@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
-import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_text_styles.dart';
+import '../../../core/theme/app_palette.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/widgets/brainup_button.dart';
+import '../../../core/widgets/brainup_logo.dart';
 import '../../../core/widgets/brainup_text_field.dart';
 import '../../../core/utils/validators.dart';
 import '../viewmodels/auth_viewmodel.dart';
@@ -37,7 +37,7 @@ class _LoginScreenState extends State<LoginScreen> {
     if (!ok && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: Text(vm.error ?? 'Sign in failed'),
-        backgroundColor: AppColors.error,
+        backgroundColor: context.colors.error,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ));
@@ -47,11 +47,11 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     final vm = context.watch<AuthViewModel>();
+    final colors = context.colors;
     return Scaffold(
-      backgroundColor: AppColors.surface,
+      backgroundColor: colors.surface,
       body: Stack(
         children: [
-          // Accent blur blob
           Positioned(
             top: -80,
             right: -80,
@@ -61,7 +61,7 @@ class _LoginScreenState extends State<LoginScreen> {
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 gradient: RadialGradient(colors: [
-                  AppColors.accent.withValues(alpha: 0.06),
+                  colors.accent.withValues(alpha: 0.06),
                   Colors.transparent,
                 ]),
               ),
@@ -77,31 +77,21 @@ class _LoginScreenState extends State<LoginScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const SizedBox(height: 32),
-                    // Logo
                     Row(
                       children: [
-                        Container(
-                          width: 48,
-                          height: 48,
-                          decoration: const BoxDecoration(
-                            shape: BoxShape.circle,
-                            gradient: AppColors.accentGradient,
-                          ),
-                          child: const Icon(Icons.psychology_rounded,
-                              color: Colors.white, size: 26),
-                        ),
+                        const BrainUpLogo(size: 48),
                         const SizedBox(width: 12),
-                        Text('BrainUp', style: AppTextStyles.h3),
+                        Text('BrainUp', style: context.text.h3),
                       ],
                     ).animate().fadeIn(duration: 400.ms).slideY(begin: 0.1),
                     const SizedBox(height: 40),
-                    Text('Welcome back', style: AppTextStyles.h2)
+                    Text('Welcome back', style: context.text.h2)
                         .animate(delay: 100.ms)
                         .fadeIn(duration: 400.ms)
                         .slideY(begin: 0.1),
                     const SizedBox(height: 6),
                     Text('Sign in to continue your journey',
-                            style: AppTextStyles.bodySmall)
+                            style: context.text.bodySmall)
                         .animate(delay: 150.ms)
                         .fadeIn(duration: 400.ms),
                     const SizedBox(height: 36),
@@ -136,7 +126,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       child: TextButton(
                         onPressed: () => _showForgotPassword(),
                         child: Text('Forgot password?',
-                            style: AppTextStyles.accentText),
+                            style: context.text.accentText),
                       ),
                     ).animate(delay: 300.ms).fadeIn(),
                     const SizedBox(height: 24),
@@ -149,22 +139,20 @@ class _LoginScreenState extends State<LoginScreen> {
                         .fadeIn(duration: 400.ms)
                         .slideY(begin: 0.1),
                     const SizedBox(height: 28),
-                    // Divider
                     Row(
                       children: [
-                        const Expanded(
-                            child: Divider(color: AppColors.surfaceBorder)),
+                        Expanded(
+                            child: Divider(color: colors.surfaceBorder)),
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 12),
                           child: Text('or continue with',
-                              style: AppTextStyles.caption),
+                              style: context.text.caption),
                         ),
-                        const Expanded(
-                            child: Divider(color: AppColors.surfaceBorder)),
+                        Expanded(
+                            child: Divider(color: colors.surfaceBorder)),
                       ],
                     ).animate(delay: 400.ms).fadeIn(),
                     const SizedBox(height: 20),
-                    // Google Sign-in button
                     const _GoogleSignInButton()
                         .animate(delay: 450.ms)
                         .fadeIn(duration: 400.ms)
@@ -175,11 +163,11 @@ class _LoginScreenState extends State<LoginScreen> {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Text("Don't have an account? ",
-                              style: AppTextStyles.bodySmall),
+                              style: context.text.bodySmall),
                           GestureDetector(
                             onTap: () => context.go('/signup'),
                             child: Text('Sign Up',
-                                style: AppTextStyles.accentText),
+                                style: context.text.accentText),
                           ),
                         ],
                       ),
@@ -248,7 +236,7 @@ class _GoogleSignInButtonState extends State<_GoogleSignInButton> {
     if (!ok && mounted && vm.error != null) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: Text(vm.error!),
-        backgroundColor: AppColors.error,
+        backgroundColor: context.colors.error,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ));
@@ -258,12 +246,13 @@ class _GoogleSignInButtonState extends State<_GoogleSignInButton> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return Container(
       height: 52,
       decoration: BoxDecoration(
-        color: AppColors.surfaceElevated,
+        color: colors.surfaceElevated,
         borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-        border: Border.all(color: AppColors.surfaceBorder, width: 0.5),
+        border: Border.all(color: colors.surfaceBorder, width: 0.5),
       ),
       child: Material(
         color: Colors.transparent,
@@ -274,20 +263,19 @@ class _GoogleSignInButtonState extends State<_GoogleSignInButton> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               if (_loading)
-                const SizedBox(
+                SizedBox(
                   width: 20,
                   height: 20,
                   child: CircularProgressIndicator(
-                      strokeWidth: 2, color: AppColors.accent),
+                      strokeWidth: 2, color: colors.accent),
                 )
               else ...[
-                // Google 'G' icon using coloured letters
                 _GoogleGIcon(),
                 const SizedBox(width: 12),
                 Text(
                   'Sign in with Google',
-                  style: AppTextStyles.button.copyWith(
-                    color: AppColors.textPrimary,
+                  style: context.text.button.copyWith(
+                    color: colors.textPrimary,
                   ),
                 ),
               ],
@@ -317,12 +305,11 @@ class _GoogleGPainter extends CustomPainter {
     final c = Offset(size.width / 2, size.height / 2);
     final r = size.width / 2;
 
-    // Draw coloured arc segments
     final segments = [
-      (0.0, 90.0, const Color(0xFF4285F4)),    // blue
-      (90.0, 90.0, const Color(0xFF34A853)),   // green
-      (180.0, 90.0, const Color(0xFFFBBC05)),  // yellow
-      (270.0, 90.0, const Color(0xFFEA4335)),  // red
+      (0.0, 90.0, const Color(0xFF4285F4)),
+      (90.0, 90.0, const Color(0xFF34A853)),
+      (180.0, 90.0, const Color(0xFFFBBC05)),
+      (270.0, 90.0, const Color(0xFFEA4335)),
     ];
 
     for (final (start, sweep, color) in segments) {
@@ -340,7 +327,6 @@ class _GoogleGPainter extends CustomPainter {
       );
     }
 
-    // White horizontal bar for the 'G' crossbar
     final barPaint = Paint()
       ..color = const Color(0xFF4285F4)
       ..strokeWidth = 3.5
@@ -355,4 +341,3 @@ class _GoogleGPainter extends CustomPainter {
   @override
   bool shouldRepaint(_GoogleGPainter oldDelegate) => false;
 }
-

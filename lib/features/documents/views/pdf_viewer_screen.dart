@@ -2,18 +2,18 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:go_router/go_router.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:pdfx/pdfx.dart';
 import 'package:printing/printing.dart';
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
 
-import '../../../core/theme/app_colors.dart';
+import '../../../core/navigation/back_navigation.dart';
+import '../../../core/theme/app_palette.dart';
 import '../../../core/theme/app_spacing.dart';
-import '../../../core/theme/app_text_styles.dart';
 import '../../../core/widgets/brainup_button.dart';
 import '../../../core/widgets/brainup_text_field.dart';
+import '../../ai_tools/utils/summarizer_navigation.dart';
 import '../models/document_model.dart';
 import '../services/pdf_service.dart';
 import '../viewmodels/document_viewmodel.dart';
@@ -73,16 +73,20 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
   Widget build(BuildContext context) {
     final vm = context.watch<DocumentViewModel>();
     final doc = _resolveDoc(vm);
+    final colors = context.colors;
 
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
-        backgroundColor: AppColors.primary.withOpacity(0.95),
-        foregroundColor: AppColors.textPrimary,
+        backgroundColor: colors.primary.withOpacity(0.95),
+        foregroundColor: colors.textPrimary,
         elevation: 0,
+        automaticallyImplyLeading: false,
+        leading: brainUpBackButton(context,
+            fallback: '/documents', iconColor: colors.textPrimary),
         title: Text(
           widget.title ?? doc?.title ?? 'Document',
-          style: AppTextStyles.h5,
+          style: context.text.h5,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
         ),
@@ -145,8 +149,8 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
               ),
             ),
           if (_isLoading)
-            const Center(
-              child: CircularProgressIndicator(color: AppColors.accent),
+            Center(
+              child: CircularProgressIndicator(color: colors.accent),
             ),
         ],
       ),
@@ -163,28 +167,29 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
   }
 
   Widget _buildErrorState(Object error) {
+    final colors = context.colors;
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(
+            Icon(
               Icons.error_outline_rounded,
-              color: AppColors.error,
+              color: colors.error,
               size: 48,
             ),
             const SizedBox(height: 12),
             Text(
               'Could not open PDF',
-              style: AppTextStyles.h5.copyWith(color: AppColors.textPrimary),
+              style: context.text.h5.copyWith(color: colors.textPrimary),
             ),
             const SizedBox(height: 6),
             Text(
               error.toString(),
               textAlign: TextAlign.center,
-              style: AppTextStyles.caption
-                  .copyWith(color: AppColors.textSecondary),
+              style: context.text.caption
+                  .copyWith(color: colors.textSecondary),
             ),
           ],
         ),
@@ -233,109 +238,114 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
-      builder: (sheetCtx) => Container(
-        padding: const EdgeInsets.fromLTRB(8, 12, 8, 28),
-        decoration: const BoxDecoration(
-          color: AppColors.surfaceCard,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const _SheetHandle(),
-            const SizedBox(height: 8),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      widget.title ?? doc?.title ?? 'Document',
-                      style: AppTextStyles.h5,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+      builder: (sheetCtx) {
+        final colors = sheetCtx.colors;
+        return Container(
+          padding: const EdgeInsets.fromLTRB(8, 12, 8, 28),
+          decoration: BoxDecoration(
+            color: colors.surfaceCard,
+            borderRadius:
+                const BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const _SheetHandle(),
+              const SizedBox(height: 8),
+              Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        widget.title ?? doc?.title ?? 'Document',
+                        style: sheetCtx.text.h5,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-            const Divider(color: AppColors.surfaceBorder, height: 1),
-            _MenuTile(
-              icon: Icons.image_rounded,
-              label: 'Share as Image',
-              iconColor: AppColors.warning,
-              onTap: () {
-                Navigator.pop(sheetCtx);
-                if (doc != null) _shareAsImage(context, doc);
-              },
-            ),
-            _MenuTile(
-              icon: Icons.compress_rounded,
-              label: 'Compress',
-              onTap: () {
-                Navigator.pop(sheetCtx);
-                if (doc != null) _compressPdf(context, vm, doc);
-              },
-            ),
-            _MenuTile(
-              icon: Icons.call_split_rounded,
-              label: 'Split into pages',
-              iconColor: AppColors.error,
-              onTap: () {
-                Navigator.pop(sheetCtx);
-                if (doc != null) _splitPdf(context, vm, doc);
-              },
-            ),
-            _MenuTile(
-              icon: Icons.merge_rounded,
-              label: 'Merge with…',
-              onTap: () {
-                Navigator.pop(sheetCtx);
-                if (doc != null) _mergePdfFlow(context, vm, doc);
-              },
-            ),
-            _MenuTile(
-              icon: Icons.lock_rounded,
-              label: 'Password protect',
-              iconColor: AppColors.warning,
-              onTap: () {
-                Navigator.pop(sheetCtx);
-                if (doc != null) _lockPdf(context, vm, doc);
-              },
-            ),
-            _MenuTile(
-              icon: Icons.water_rounded,
-              label: 'Add watermark',
-              onTap: () {
-                Navigator.pop(sheetCtx);
-                if (doc != null) _addWatermark(context, vm, doc);
-              },
-            ),
-            _MenuTile(
-              icon: Icons.open_in_new_rounded,
-              label: 'Open externally',
-              onTap: () {
-                Navigator.pop(sheetCtx);
-                PdfService.openPdf(widget.path);
-              },
-            ),
-            _MenuTile(
-              icon: Icons.delete_outline_rounded,
-              label: 'Delete',
-              iconColor: AppColors.error,
-              labelColor: AppColors.error,
-              onTap: () async {
-                Navigator.pop(sheetCtx);
-                if (doc == null) return;
-                final ok = await _confirmDelete(context, doc);
-                if (!ok) return;
-                await vm.deleteDocument(doc.id);
-                if (context.mounted) Navigator.pop(context);
-              },
-            ),
-          ],
-        ),
-      ),
+              Divider(color: colors.surfaceBorder, height: 1),
+              _MenuTile(
+                icon: Icons.image_rounded,
+                label: 'Share as Image',
+                iconColor: colors.warning,
+                onTap: () {
+                  Navigator.pop(sheetCtx);
+                  if (doc != null) _shareAsImage(context, doc);
+                },
+              ),
+              _MenuTile(
+                icon: Icons.compress_rounded,
+                label: 'Compress',
+                onTap: () {
+                  Navigator.pop(sheetCtx);
+                  if (doc != null) _compressPdf(context, vm, doc);
+                },
+              ),
+              _MenuTile(
+                icon: Icons.call_split_rounded,
+                label: 'Split into pages',
+                iconColor: colors.error,
+                onTap: () {
+                  Navigator.pop(sheetCtx);
+                  if (doc != null) _splitPdf(context, vm, doc);
+                },
+              ),
+              _MenuTile(
+                icon: Icons.merge_rounded,
+                label: 'Merge with…',
+                onTap: () {
+                  Navigator.pop(sheetCtx);
+                  if (doc != null) _mergePdfFlow(context, vm, doc);
+                },
+              ),
+              _MenuTile(
+                icon: Icons.lock_rounded,
+                label: 'Password protect',
+                iconColor: colors.warning,
+                onTap: () {
+                  Navigator.pop(sheetCtx);
+                  if (doc != null) _lockPdf(context, vm, doc);
+                },
+              ),
+              _MenuTile(
+                icon: Icons.water_rounded,
+                label: 'Add watermark',
+                onTap: () {
+                  Navigator.pop(sheetCtx);
+                  if (doc != null) _addWatermark(context, vm, doc);
+                },
+              ),
+              _MenuTile(
+                icon: Icons.open_in_new_rounded,
+                label: 'Open externally',
+                onTap: () {
+                  Navigator.pop(sheetCtx);
+                  PdfService.openPdf(widget.path);
+                },
+              ),
+              _MenuTile(
+                icon: Icons.delete_outline_rounded,
+                label: 'Delete',
+                iconColor: colors.error,
+                labelColor: colors.error,
+                onTap: () async {
+                  Navigator.pop(sheetCtx);
+                  if (doc == null) return;
+                  final ok = await _confirmDelete(context, doc);
+                  if (!ok) return;
+                  await vm.deleteDocument(doc.id);
+                  if (context.mounted) Navigator.pop(context);
+                },
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -352,90 +362,96 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
         minChildSize: 0.35,
         maxChildSize: 0.95,
         expand: false,
-        builder: (_, scrollController) => Container(
-          decoration: const BoxDecoration(
-            color: AppColors.surfaceCard,
-            borderRadius:
-                BorderRadius.vertical(top: Radius.circular(AppSpacing.radiusXl)),
-          ),
-          padding: const EdgeInsets.fromLTRB(20, 14, 20, 20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const _SheetHandle(),
-              const SizedBox(height: 14),
-              Row(
-                children: [
-                  Expanded(
-                    child: Text('Extracted Text', style: AppTextStyles.h4),
-                  ),
-                  IconButton(
-                    tooltip: 'Copy',
-                    onPressed: text.isEmpty
-                        ? null
-                        : () async {
-                            await Clipboard.setData(
-                              ClipboardData(text: text),
-                            );
-                            if (sheetCtx.mounted) {
-                              ScaffoldMessenger.of(sheetCtx).showSnackBar(
-                                const SnackBar(
-                                  content: Text('Copied to clipboard'),
-                                ),
-                              );
-                            }
-                          },
-                    icon: Icon(
-                      Icons.copy_rounded,
-                      color: text.isEmpty
-                          ? AppColors.textSecondary
-                          : AppColors.accent,
+        builder: (_, scrollController) {
+          final colors = sheetCtx.colors;
+          return Container(
+            decoration: BoxDecoration(
+              color: colors.surfaceCard,
+              borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(AppSpacing.radiusXl)),
+            ),
+            padding: const EdgeInsets.fromLTRB(20, 14, 20, 20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const _SheetHandle(),
+                const SizedBox(height: 14),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text('Extracted Text', style: sheetCtx.text.h4),
                     ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Expanded(
-                child: text.isEmpty
-                    ? Center(
-                        child: Text(
-                          'No OCR text available for this document.',
-                          style: AppTextStyles.body
-                              .copyWith(color: AppColors.textSecondary),
-                          textAlign: TextAlign.center,
-                        ),
-                      )
-                    : SingleChildScrollView(
-                        controller: scrollController,
-                        child: SelectableText(
-                          text,
-                          style: AppTextStyles.body.copyWith(
-                            color: AppColors.textPrimary,
-                            height: 1.5,
+                    IconButton(
+                      tooltip: 'Copy',
+                      onPressed: text.isEmpty
+                          ? null
+                          : () async {
+                              await Clipboard.setData(
+                                ClipboardData(text: text),
+                              );
+                              if (sheetCtx.mounted) {
+                                ScaffoldMessenger.of(sheetCtx).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Copied to clipboard'),
+                                  ),
+                                );
+                              }
+                            },
+                      icon: Icon(
+                        Icons.copy_rounded,
+                        color: text.isEmpty
+                            ? colors.textSecondary
+                            : colors.accent,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Expanded(
+                  child: text.isEmpty
+                      ? Center(
+                          child: Text(
+                            'No OCR text available for this document.',
+                            style: sheetCtx.text.body
+                                .copyWith(color: colors.textSecondary),
+                            textAlign: TextAlign.center,
+                          ),
+                        )
+                      : SingleChildScrollView(
+                          controller: scrollController,
+                          child: SelectableText(
+                            text,
+                            style: sheetCtx.text.body.copyWith(
+                              color: colors.textPrimary,
+                              height: 1.5,
+                            ),
                           ),
                         ),
-                      ),
-              ),
-              if (text.isNotEmpty) ...[
-                const SizedBox(height: 12),
-                BrainUpButton(
-                  label: 'Summarize with AI',
-                  onTap: () {
-                    Navigator.pop(sheetCtx);
-                    context.push('/ai/summarizer', extra: text);
-                  },
                 ),
+                if (text.isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  BrainUpButton(
+                    label: 'Summarize with AI',
+                    onTap: () {
+                      Navigator.pop(sheetCtx);
+                      openSummarizerWithText(context, text);
+                    },
+                  ),
+                ],
               ],
-            ],
-          ),
-        ),
+            ),
+          );
+        },
       ),
     );
   }
 
-  void _navigateToSummarizer(BuildContext context, DocumentModel? doc) {
+  Future<void> _navigateToSummarizer(
+    BuildContext context,
+    DocumentModel? doc,
+  ) async {
     final text = doc?.extractedText ?? '';
-    if (text.isEmpty) {
+    if (text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
@@ -445,54 +461,58 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
       );
       return;
     }
-    context.push('/ai/summarizer', extra: text);
+    await openSummarizerWithText(context, text);
   }
 
   Future<bool> _confirmDelete(BuildContext context, DocumentModel doc) async {
     final result = await showDialog<bool>(
       context: context,
-      builder: (dialogCtx) => AlertDialog(
-        backgroundColor: AppColors.surfaceCard,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
-        ),
-        icon: const Icon(
-          Icons.delete_outline_rounded,
-          color: AppColors.error,
-          size: 36,
-        ),
-        title: Text(
-          'Delete document?',
-          style: AppTextStyles.h4,
-          textAlign: TextAlign.center,
-        ),
-        content: Text(
-          '"${doc.title}" will be permanently removed.',
-          style: AppTextStyles.body.copyWith(color: AppColors.textSecondary),
-          textAlign: TextAlign.center,
-        ),
-        actionsAlignment: MainAxisAlignment.spaceBetween,
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogCtx, false),
-            child: Text(
-              'Cancel',
-              style:
-                  AppTextStyles.body.copyWith(color: AppColors.textSecondary),
-            ),
+      builder: (dialogCtx) {
+        final colors = dialogCtx.colors;
+        return AlertDialog(
+          backgroundColor: colors.surfaceCard,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
           ),
-          TextButton(
-            onPressed: () => Navigator.pop(dialogCtx, true),
-            child: Text(
-              'Delete',
-              style: AppTextStyles.body.copyWith(
-                color: AppColors.error,
-                fontWeight: FontWeight.w600,
+          icon: Icon(
+            Icons.delete_outline_rounded,
+            color: colors.error,
+            size: 36,
+          ),
+          title: Text(
+            'Delete document?',
+            style: dialogCtx.text.h4,
+            textAlign: TextAlign.center,
+          ),
+          content: Text(
+            '"${doc.title}" will be permanently removed.',
+            style:
+                dialogCtx.text.body.copyWith(color: colors.textSecondary),
+            textAlign: TextAlign.center,
+          ),
+          actionsAlignment: MainAxisAlignment.spaceBetween,
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogCtx, false),
+              child: Text(
+                'Cancel',
+                style: dialogCtx.text.body
+                    .copyWith(color: colors.textSecondary),
               ),
             ),
-          ),
-        ],
-      ),
+            TextButton(
+              onPressed: () => Navigator.pop(dialogCtx, true),
+              child: Text(
+                'Delete',
+                style: dialogCtx.text.body.copyWith(
+                  color: colors.error,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
     );
     return result == true;
   }
@@ -556,68 +576,71 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
       if (!context.mounted) return;
       await showDialog<void>(
         context: context,
-        builder: (dialogCtx) => AlertDialog(
-          backgroundColor: AppColors.surfaceCard,
-          title: Text('Compressed!', style: AppTextStyles.h4),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text('Before:', style: AppTextStyles.body),
-                  Text(
-                    doc.formattedSize,
-                    style: AppTextStyles.body
-                        .copyWith(color: AppColors.error),
-                  ),
-                ],
+        builder: (dialogCtx) {
+          final colors = dialogCtx.colors;
+          return AlertDialog(
+            backgroundColor: colors.surfaceCard,
+            title: Text('Compressed!', style: dialogCtx.text.h4),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text('Before:', style: dialogCtx.text.body),
+                    Text(
+                      doc.formattedSize,
+                      style:
+                          dialogCtx.text.body.copyWith(color: colors.error),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text('After:', style: dialogCtx.text.body),
+                    Text(
+                      '${(newSize / 1024 / 1024).toStringAsFixed(1)} MB',
+                      style: dialogCtx.text.body
+                          .copyWith(color: colors.success),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  '$saved% saved',
+                  style:
+                      dialogCtx.text.h5.copyWith(color: colors.accent),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogCtx),
+                child: const Text('Cancel'),
               ),
-              const SizedBox(height: 8),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text('After:', style: AppTextStyles.body),
-                  Text(
-                    '${(newSize / 1024 / 1024).toStringAsFixed(1)} MB',
-                    style: AppTextStyles.body
-                        .copyWith(color: AppColors.success),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Text(
-                '$saved% saved',
-                style:
-                    AppTextStyles.h5.copyWith(color: AppColors.accent),
+              TextButton(
+                onPressed: () async {
+                  Navigator.pop(dialogCtx);
+                  final newDoc = doc.copyWith(
+                    id: DateTime.now().microsecondsSinceEpoch.toString(),
+                    title: '${doc.title} (Compressed)',
+                    fileSizeBytes: newSize,
+                  );
+                  await vm.repository.saveDocument(newDoc, compressed);
+                  messenger.showSnackBar(
+                    const SnackBar(content: Text('Saved as new document!')),
+                  );
+                },
+                child: Text(
+                  'Save',
+                  style: TextStyle(color: colors.accent),
+                ),
               ),
             ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogCtx),
-              child: const Text('Cancel'),
-            ),
-            TextButton(
-              onPressed: () async {
-                Navigator.pop(dialogCtx);
-                final newDoc = doc.copyWith(
-                  id: DateTime.now().microsecondsSinceEpoch.toString(),
-                  title: '${doc.title} (Compressed)',
-                  fileSizeBytes: newSize,
-                );
-                await vm.repository.saveDocument(newDoc, compressed);
-                messenger.showSnackBar(
-                  const SnackBar(content: Text('Saved as new document!')),
-                );
-              },
-              child: const Text(
-                'Save',
-                style: TextStyle(color: AppColors.accent),
-              ),
-            ),
-          ],
-        ),
+          );
+        },
       );
     } catch (e) {
       messenger.showSnackBar(
@@ -640,51 +663,54 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
     final messenger = ScaffoldMessenger.of(context);
     await showDialog<void>(
       context: context,
-      builder: (dialogCtx) => AlertDialog(
-        backgroundColor: AppColors.surfaceCard,
-        title: Text('Split PDF', style: AppTextStyles.h4),
-        content: Text(
-          'This will split "${doc.title}" into ${doc.pageCount} separate PDF files, one per page.',
-          style: AppTextStyles.body,
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogCtx),
-            child: const Text('Cancel'),
+      builder: (dialogCtx) {
+        final colors = dialogCtx.colors;
+        return AlertDialog(
+          backgroundColor: colors.surfaceCard,
+          title: Text('Split PDF', style: dialogCtx.text.h4),
+          content: Text(
+            'This will split "${doc.title}" into ${doc.pageCount} separate PDF files, one per page.',
+            style: dialogCtx.text.body,
           ),
-          TextButton(
-            onPressed: () async {
-              Navigator.pop(dialogCtx);
-              _showLoadingSnack(context, 'Splitting ${doc.pageCount} pages…');
-              try {
-                final files = await PdfService.splitPdf(doc.localPath);
-                for (int i = 0; i < files.length; i++) {
-                  final splitDoc = doc.copyWith(
-                    id: DateTime.now().microsecondsSinceEpoch.toString() +
-                        i.toString(),
-                    title: '${doc.title} — Page ${i + 1}',
-                    pageCount: 1,
-                  );
-                  await vm.repository.saveDocument(splitDoc, files[i]);
-                }
-                messenger.showSnackBar(
-                  SnackBar(
-                    content: Text('Split into ${files.length} documents!'),
-                  ),
-                );
-              } catch (e) {
-                messenger.showSnackBar(
-                  SnackBar(content: Text('Split failed: $e')),
-                );
-              }
-            },
-            child: const Text(
-              'Split',
-              style: TextStyle(color: AppColors.error),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogCtx),
+              child: const Text('Cancel'),
             ),
-          ),
-        ],
-      ),
+            TextButton(
+              onPressed: () async {
+                Navigator.pop(dialogCtx);
+                _showLoadingSnack(context, 'Splitting ${doc.pageCount} pages…');
+                try {
+                  final files = await PdfService.splitPdf(doc.localPath);
+                  for (int i = 0; i < files.length; i++) {
+                    final splitDoc = doc.copyWith(
+                      id: DateTime.now().microsecondsSinceEpoch.toString() +
+                          i.toString(),
+                      title: '${doc.title} — Page ${i + 1}',
+                      pageCount: 1,
+                    );
+                    await vm.repository.saveDocument(splitDoc, files[i]);
+                  }
+                  messenger.showSnackBar(
+                    SnackBar(
+                      content: Text('Split into ${files.length} documents!'),
+                    ),
+                  );
+                } catch (e) {
+                  messenger.showSnackBar(
+                    SnackBar(content: Text('Split failed: $e')),
+                  );
+                }
+              },
+              child: Text(
+                'Split',
+                style: TextStyle(color: colors.error),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -712,90 +738,94 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
       builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setSheetState) => Container(
-          height: MediaQuery.of(ctx).size.height * 0.6,
-          padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
-          decoration: const BoxDecoration(
-            color: AppColors.surfaceCard,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-          ),
-          child: Column(
-            children: [
-              const _SheetHandle(),
-              const SizedBox(height: 16),
-              Text(
-                'Select PDFs to merge with "${doc.title}"',
-                style: AppTextStyles.h5,
-              ),
-              const SizedBox(height: 12),
-              Expanded(
-                child: ListView.builder(
-                  itemCount: allDocs.length,
-                  itemBuilder: (_, i) {
-                    final d = allDocs[i];
-                    return CheckboxListTile(
-                      value: selected.contains(d.id),
-                      onChanged: (v) => setSheetState(() {
-                        if (v == true) {
-                          selected.add(d.id);
-                        } else {
-                          selected.remove(d.id);
-                        }
-                      }),
-                      title: Text(d.title, style: AppTextStyles.body),
-                      subtitle: Text(
-                        d.formattedSize,
-                        style: AppTextStyles.caption,
-                      ),
-                      activeColor: AppColors.accent,
-                    );
-                  },
+        builder: (ctx, setSheetState) {
+          final colors = ctx.colors;
+          return Container(
+            height: MediaQuery.of(ctx).size.height * 0.6,
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+            decoration: BoxDecoration(
+              color: colors.surfaceCard,
+              borderRadius:
+                  const BorderRadius.vertical(top: Radius.circular(24)),
+            ),
+            child: Column(
+              children: [
+                const _SheetHandle(),
+                const SizedBox(height: 16),
+                Text(
+                  'Select PDFs to merge with "${doc.title}"',
+                  style: ctx.text.h5,
                 ),
-              ),
-              SizedBox(
-                width: double.infinity,
-                child: BrainUpButton(
-                  label: 'Merge ${selected.length + 1} PDFs',
-                  onTap: selected.isEmpty
-                      ? null
-                      : () async {
-                          Navigator.pop(ctx);
-                          _showLoadingSnack(context, 'Merging PDFs…');
-                          try {
-                            final paths = [
-                              doc.localPath,
-                              ...allDocs
-                                  .where((d) => selected.contains(d.id))
-                                  .map((d) => d.localPath),
-                            ];
-                            final merged =
-                                await PdfService.mergePdfs(paths);
-                            final mergedDoc = doc.copyWith(
-                              id: DateTime.now()
-                                  .microsecondsSinceEpoch
-                                  .toString(),
-                              title: '${doc.title} (Merged)',
-                              pageCount:
-                                  doc.pageCount + selected.length,
-                            );
-                            await vm.repository
-                                .saveDocument(mergedDoc, merged);
-                            messenger.showSnackBar(
-                              const SnackBar(
-                                content: Text('Merged successfully!'),
-                              ),
-                            );
-                          } catch (e) {
-                            messenger.showSnackBar(
-                              SnackBar(content: Text('Merge failed: $e')),
-                            );
+                const SizedBox(height: 12),
+                Expanded(
+                  child: ListView.builder(
+                    itemCount: allDocs.length,
+                    itemBuilder: (_, i) {
+                      final d = allDocs[i];
+                      return CheckboxListTile(
+                        value: selected.contains(d.id),
+                        onChanged: (v) => setSheetState(() {
+                          if (v == true) {
+                            selected.add(d.id);
+                          } else {
+                            selected.remove(d.id);
                           }
-                        },
+                        }),
+                        title: Text(d.title, style: ctx.text.body),
+                        subtitle: Text(
+                          d.formattedSize,
+                          style: ctx.text.caption,
+                        ),
+                        activeColor: colors.accent,
+                      );
+                    },
+                  ),
                 ),
-              ),
-            ],
-          ),
-        ),
+                SizedBox(
+                  width: double.infinity,
+                  child: BrainUpButton(
+                    label: 'Merge ${selected.length + 1} PDFs',
+                    onTap: selected.isEmpty
+                        ? null
+                        : () async {
+                            Navigator.pop(ctx);
+                            _showLoadingSnack(context, 'Merging PDFs…');
+                            try {
+                              final paths = [
+                                doc.localPath,
+                                ...allDocs
+                                    .where((d) => selected.contains(d.id))
+                                    .map((d) => d.localPath),
+                              ];
+                              final merged =
+                                  await PdfService.mergePdfs(paths);
+                              final mergedDoc = doc.copyWith(
+                                id: DateTime.now()
+                                    .microsecondsSinceEpoch
+                                    .toString(),
+                                title: '${doc.title} (Merged)',
+                                pageCount:
+                                    doc.pageCount + selected.length,
+                              );
+                              await vm.repository
+                                  .saveDocument(mergedDoc, merged);
+                              messenger.showSnackBar(
+                                const SnackBar(
+                                  content: Text('Merged successfully!'),
+                                ),
+                              );
+                            } catch (e) {
+                              messenger.showSnackBar(
+                                SnackBar(content: Text('Merge failed: $e')),
+                              );
+                            }
+                          },
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
       ),
     );
   }
@@ -814,89 +844,94 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
-      builder: (ctx) => Padding(
-        padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
-        child: Container(
-          padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
-          decoration: const BoxDecoration(
-            color: AppColors.surfaceCard,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-          ),
-          child: Form(
-            key: formKey,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const _SheetHandle(),
-                const SizedBox(height: 16),
-                Row(children: [
-                  const Icon(Icons.lock_rounded,
-                      color: AppColors.warning, size: 20),
-                  const SizedBox(width: 8),
-                  Text('Password protect PDF', style: AppTextStyles.h4),
-                ]),
-                const SizedBox(height: 8),
-                Text(
-                  'Anyone opening this PDF will need this password.',
-                  style: AppTextStyles.caption
-                      .copyWith(color: AppColors.textMuted),
-                ),
-                const SizedBox(height: 16),
-                BrainUpTextField(
-                  controller: passCtrl,
-                  label: 'Set password',
-                  obscureText: true,
-                  validator: (v) =>
-                      v == null || v.length < 4 ? 'Min 4 characters' : null,
-                ),
-                const SizedBox(height: 12),
-                BrainUpTextField(
-                  controller: confirmCtrl,
-                  label: 'Confirm password',
-                  obscureText: true,
-                  validator: (v) => v != passCtrl.text
-                      ? 'Passwords do not match'
-                      : null,
-                ),
-                const SizedBox(height: 20),
-                SizedBox(
-                  width: double.infinity,
-                  child: BrainUpButton(
-                    label: 'Lock PDF',
-                    onTap: () async {
-                      if (!formKey.currentState!.validate()) return;
-                      Navigator.pop(ctx);
-                      _showLoadingSnack(context, 'Encrypting PDF…');
-                      try {
-                        final locked = await PdfService.protectPdf(
-                          doc.localPath,
-                          password: passCtrl.text,
-                        );
-                        final lockedDoc = doc.copyWith(
-                          id: DateTime.now()
-                              .microsecondsSinceEpoch
-                              .toString(),
-                          title: '${doc.title} (Protected)',
-                        );
-                        await vm.repository.saveDocument(lockedDoc, locked);
-                        messenger.showSnackBar(
-                          const SnackBar(
-                            content: Text('PDF locked successfully!'),
-                          ),
-                        );
-                      } catch (e) {
-                        messenger.showSnackBar(
-                          SnackBar(content: Text('Failed to lock: $e')),
-                        );
-                      }
-                    },
+      builder: (ctx) {
+        final colors = ctx.colors;
+        return Padding(
+          padding:
+              EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
+          child: Container(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+            decoration: BoxDecoration(
+              color: colors.surfaceCard,
+              borderRadius:
+                  const BorderRadius.vertical(top: Radius.circular(24)),
+            ),
+            child: Form(
+              key: formKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const _SheetHandle(),
+                  const SizedBox(height: 16),
+                  Row(children: [
+                    Icon(Icons.lock_rounded,
+                        color: colors.warning, size: 20),
+                    const SizedBox(width: 8),
+                    Text('Password protect PDF', style: ctx.text.h4),
+                  ]),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Anyone opening this PDF will need this password.',
+                    style:
+                        ctx.text.caption.copyWith(color: colors.textMuted),
                   ),
-                ),
-              ],
+                  const SizedBox(height: 16),
+                  BrainUpTextField(
+                    controller: passCtrl,
+                    label: 'Set password',
+                    obscureText: true,
+                    validator: (v) =>
+                        v == null || v.length < 4 ? 'Min 4 characters' : null,
+                  ),
+                  const SizedBox(height: 12),
+                  BrainUpTextField(
+                    controller: confirmCtrl,
+                    label: 'Confirm password',
+                    obscureText: true,
+                    validator: (v) => v != passCtrl.text
+                        ? 'Passwords do not match'
+                        : null,
+                  ),
+                  const SizedBox(height: 20),
+                  SizedBox(
+                    width: double.infinity,
+                    child: BrainUpButton(
+                      label: 'Lock PDF',
+                      onTap: () async {
+                        if (!formKey.currentState!.validate()) return;
+                        Navigator.pop(ctx);
+                        _showLoadingSnack(context, 'Encrypting PDF…');
+                        try {
+                          final locked = await PdfService.protectPdf(
+                            doc.localPath,
+                            password: passCtrl.text,
+                          );
+                          final lockedDoc = doc.copyWith(
+                            id: DateTime.now()
+                                .microsecondsSinceEpoch
+                                .toString(),
+                            title: '${doc.title} (Protected)',
+                          );
+                          await vm.repository.saveDocument(lockedDoc, locked);
+                          messenger.showSnackBar(
+                            const SnackBar(
+                              content: Text('PDF locked successfully!'),
+                            ),
+                          );
+                        } catch (e) {
+                          messenger.showSnackBar(
+                            SnackBar(content: Text('Failed to lock: $e')),
+                          );
+                        }
+                      },
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 
@@ -914,80 +949,84 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
       builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setSheetState) => Padding(
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.of(ctx).viewInsets.bottom,
-          ),
-          child: Container(
-            padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
-            decoration: const BoxDecoration(
-              color: AppColors.surfaceCard,
-              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        builder: (ctx, setSheetState) {
+          final colors = ctx.colors;
+          return Padding(
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.of(ctx).viewInsets.bottom,
             ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const _SheetHandle(),
-                const SizedBox(height: 16),
-                Text('Add Watermark', style: AppTextStyles.h4),
-                const SizedBox(height: 16),
-                BrainUpTextField(
-                  controller: textCtrl,
-                  label: 'Watermark text',
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  'Opacity: ${(opacity * 100).round()}%',
-                  style: AppTextStyles.bodySmall,
-                ),
-                Slider(
-                  value: opacity,
-                  min: 0.1,
-                  max: 0.8,
-                  activeColor: AppColors.accent,
-                  onChanged: (v) => setSheetState(() => opacity = v),
-                ),
-                const SizedBox(height: 16),
-                SizedBox(
-                  width: double.infinity,
-                  child: BrainUpButton(
-                    label: 'Apply Watermark',
-                    onTap: () async {
-                      Navigator.pop(ctx);
-                      _showLoadingSnack(context, 'Adding watermark…');
-                      try {
-                        final out = await PdfService.addWatermark(
-                          doc.localPath,
-                          watermarkText: textCtrl.text.trim().isEmpty
-                              ? 'CONFIDENTIAL'
-                              : textCtrl.text.trim(),
-                          opacity: opacity,
-                        );
-                        final wDoc = doc.copyWith(
-                          id: DateTime.now()
-                              .microsecondsSinceEpoch
-                              .toString(),
-                          title: '${doc.title} (Watermarked)',
-                        );
-                        await vm.repository.saveDocument(wDoc, out);
-                        messenger.showSnackBar(
-                          const SnackBar(
-                            content: Text('Watermark added!'),
-                          ),
-                        );
-                      } catch (e) {
-                        messenger.showSnackBar(
-                          SnackBar(content: Text('Failed: $e')),
-                        );
-                      }
-                    },
+            child: Container(
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+              decoration: BoxDecoration(
+                color: colors.surfaceCard,
+                borderRadius:
+                    const BorderRadius.vertical(top: Radius.circular(24)),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const _SheetHandle(),
+                  const SizedBox(height: 16),
+                  Text('Add Watermark', style: ctx.text.h4),
+                  const SizedBox(height: 16),
+                  BrainUpTextField(
+                    controller: textCtrl,
+                    label: 'Watermark text',
                   ),
-                ),
-              ],
+                  const SizedBox(height: 16),
+                  Text(
+                    'Opacity: ${(opacity * 100).round()}%',
+                    style: ctx.text.bodySmall,
+                  ),
+                  Slider(
+                    value: opacity,
+                    min: 0.1,
+                    max: 0.8,
+                    activeColor: colors.accent,
+                    onChanged: (v) => setSheetState(() => opacity = v),
+                  ),
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    width: double.infinity,
+                    child: BrainUpButton(
+                      label: 'Apply Watermark',
+                      onTap: () async {
+                        Navigator.pop(ctx);
+                        _showLoadingSnack(context, 'Adding watermark…');
+                        try {
+                          final out = await PdfService.addWatermark(
+                            doc.localPath,
+                            watermarkText: textCtrl.text.trim().isEmpty
+                                ? 'CONFIDENTIAL'
+                                : textCtrl.text.trim(),
+                            opacity: opacity,
+                          );
+                          final wDoc = doc.copyWith(
+                            id: DateTime.now()
+                                .microsecondsSinceEpoch
+                                .toString(),
+                            title: '${doc.title} (Watermarked)',
+                          );
+                          await vm.repository.saveDocument(wDoc, out);
+                          messenger.showSnackBar(
+                            const SnackBar(
+                              content: Text('Watermark added!'),
+                            ),
+                          );
+                        } catch (e) {
+                          messenger.showSnackBar(
+                            SnackBar(content: Text('Failed: $e')),
+                          );
+                        }
+                      },
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
-        ),
+          );
+        },
       ),
     );
   }
@@ -1002,19 +1041,20 @@ class _PageIndicator extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return IgnorePointer(
       child: Center(
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
           decoration: BoxDecoration(
-            color: AppColors.surfaceCard.withOpacity(0.85),
+            color: colors.surfaceCard.withOpacity(0.85),
             borderRadius: BorderRadius.circular(AppSpacing.radiusCircle),
-            border: Border.all(color: AppColors.surfaceBorder),
+            border: Border.all(color: colors.surfaceBorder),
           ),
           child: Text(
             '$current / $total',
-            style: AppTextStyles.bodySmall
-                .copyWith(color: AppColors.textPrimary),
+            style: context.text.bodySmall
+                .copyWith(color: colors.textPrimary),
           ),
         ),
       ),
@@ -1052,27 +1092,28 @@ class _BottomBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return SafeArea(
       top: false,
       child: Container(
-        color: AppColors.surfaceCard,
+        color: colors.surfaceCard,
         height: 56,
         padding: const EdgeInsets.symmetric(horizontal: 8),
         child: Row(
           children: [
             IconButton(
               tooltip: 'Extracted text',
-              icon: const Icon(
+              icon: Icon(
                 Icons.text_fields_rounded,
-                color: AppColors.textSecondary,
+                color: colors.textSecondary,
               ),
               onPressed: onShowOcr,
             ),
             IconButton(
               tooltip: 'Summarize with AI',
-              icon: const Icon(
+              icon: Icon(
                 Icons.psychology_rounded,
-                color: AppColors.info,
+                color: colors.info,
               ),
               onPressed: onSummarize,
             ),
@@ -1082,8 +1123,8 @@ class _BottomBar extends StatelessWidget {
                 _statusLabel,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: AppTextStyles.caption.copyWith(
-                  color: AppColors.textSecondary,
+                style: context.text.caption.copyWith(
+                  color: colors.textSecondary,
                 ),
               ),
             ),
@@ -1097,8 +1138,8 @@ class _BottomBar extends StatelessWidget {
                     ? Icons.bookmark_rounded
                     : Icons.bookmark_border_rounded,
                 color: doc?.isFavorite == true
-                    ? AppColors.warning
-                    : AppColors.textSecondary,
+                    ? colors.warning
+                    : colors.textSecondary,
               ),
               onPressed: onToggleFavorite,
             ),
@@ -1128,12 +1169,13 @@ class _MenuTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return ListTile(
-      leading: Icon(icon, color: iconColor ?? AppColors.textSecondary),
+      leading: Icon(icon, color: iconColor ?? colors.textSecondary),
       title: Text(
         label,
-        style: AppTextStyles.body.copyWith(
-          color: labelColor ?? AppColors.textPrimary,
+        style: context.text.body.copyWith(
+          color: labelColor ?? colors.textPrimary,
         ),
       ),
       onTap: onTap,
@@ -1152,7 +1194,7 @@ class _SheetHandle extends StatelessWidget {
         width: 36,
         height: 4,
         decoration: BoxDecoration(
-          color: AppColors.surfaceBorder,
+          color: context.colors.surfaceBorder,
           borderRadius: BorderRadius.circular(2),
         ),
       ),

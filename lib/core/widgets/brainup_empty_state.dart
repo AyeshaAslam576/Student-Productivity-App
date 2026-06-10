@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import '../theme/app_colors.dart';
-import '../theme/app_text_styles.dart';
+import '../theme/app_palette.dart';
 import '../theme/app_spacing.dart';
 import 'brainup_button.dart';
 
@@ -24,38 +23,52 @@ class BrainUpEmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final data = _variantData();
+    final data = _variantData(context);
 
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.xxxl),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            _buildIllustration(data.icon, data.color),
-            const SizedBox(height: 24),
-            Text(
-              title ?? data.title,
-              style: AppTextStyles.h4,
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              subtitle ?? data.subtitle,
-              style: AppTextStyles.bodySmall,
-              textAlign: TextAlign.center,
-            ),
-            if (actionLabel != null && onAction != null) ...[
-              const SizedBox(height: 28),
-              BrainUpButton(
-                label: actionLabel!,
-                onTap: onAction,
-                width: 200,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final minHeight = constraints.hasBoundedHeight &&
+                constraints.maxHeight.isFinite
+            ? constraints.maxHeight
+            : 0.0;
+
+        return SingleChildScrollView(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minHeight: minHeight),
+            child: Padding(
+              padding: const EdgeInsets.all(AppSpacing.xxxl),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  _buildIllustration(data.icon, data.color),
+                  const SizedBox(height: 24),
+                  Text(
+                    title ?? data.title,
+                    style: context.text.h4,
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    subtitle ?? data.subtitle,
+                    style: context.text.bodySmall,
+                    textAlign: TextAlign.center,
+                  ),
+                  if (actionLabel != null && onAction != null) ...[
+                    const SizedBox(height: 16),
+                    BrainUpButton(
+                      label: actionLabel!,
+                      onTap: onAction,
+                      width: 220,
+                    ),
+                  ],
+                ],
               ),
-            ],
-          ],
-        ),
-      ),
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -65,7 +78,7 @@ class BrainUpEmptyState extends StatelessWidget {
       height: 100,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
       ),
       child: Center(
         child: Icon(icon, size: 48, color: color),
@@ -73,40 +86,41 @@ class BrainUpEmptyState extends StatelessWidget {
     );
   }
 
-  _EmptyData _variantData() {
+  _EmptyData _variantData(BuildContext context) {
+    final colors = context.colors;
     switch (variant) {
       case EmptyStateVariant.tasks:
         return _EmptyData(
           icon: Icons.check_circle_outline_rounded,
-          color: AppColors.success,
+          color: colors.success,
           title: 'No tasks yet',
           subtitle: 'Add your first task to get started',
         );
       case EmptyStateVariant.timetable:
         return _EmptyData(
           icon: Icons.calendar_month_outlined,
-          color: AppColors.accent,
+          color: colors.accent,
           title: 'No timetable set up',
           subtitle: 'Upload your timetable image or add classes manually',
         );
       case EmptyStateVariant.cgpa:
         return _EmptyData(
           icon: Icons.school_outlined,
-          color: AppColors.info,
+          color: colors.info,
           title: 'No semesters added',
           subtitle: 'Start tracking your CGPA by adding a semester',
         );
       case EmptyStateVariant.attendance:
         return _EmptyData(
           icon: Icons.how_to_reg_outlined,
-          color: AppColors.warning,
+          color: colors.warning,
           title: 'No attendance records',
           subtitle: 'Mark attendance for your lectures to track here',
         );
       case EmptyStateVariant.generic:
         return _EmptyData(
           icon: Icons.inbox_outlined,
-          color: AppColors.textMuted,
+          color: colors.textMuted,
           title: 'Nothing here yet',
           subtitle: 'Your content will appear here',
         );

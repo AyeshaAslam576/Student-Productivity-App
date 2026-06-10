@@ -28,6 +28,7 @@ import 'core/services/lecture_notification_service.dart';
 import 'core/services/incoming_file_service.dart';
 import 'core/services/notification_plugin.dart';
 import 'core/services/theme_provider.dart';
+import 'core/services/notification_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -37,11 +38,9 @@ Future<void> main() async {
     DeviceOrientation.portraitDown,
   ]);
 
+  // Initial overlay style; the live style is re-applied per-theme in build().
   SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
     statusBarColor: Colors.transparent,
-    statusBarIconBrightness: Brightness.light,
-    systemNavigationBarColor: Color(0xFF112233),
-    systemNavigationBarIconBrightness: Brightness.light,
   ));
 
   await dotenv.load(fileName: '.env');
@@ -50,8 +49,12 @@ Future<void> main() async {
     options: DefaultFirebaseOptions.currentPlatform,
   );
 
-  // Initialize notification channels and request permissions
+  // IMPORTANT: LectureNotificationService.initialize() must be awaited before
+  // runApp() because TimetableViewModel.loadTimetable() calls
+  // rescheduleAllForTimetable() which depends on _initialized = true.
   await LectureNotificationService.initialize();
+  await NotificationService.initialize();
+  await NotificationService.ensurePermissions();
 
   FirebaseFirestore.instance.settings = const Settings(
     persistenceEnabled: true,
@@ -202,7 +205,21 @@ class _BrainUpAppState extends State<BrainUpApp> {
                 _incomingInitialized = true;
               });
             }
-            return child ?? const SizedBox.shrink();
+            final isDark = Theme.of(context).brightness == Brightness.dark;
+            final scheme = Theme.of(context).colorScheme;
+            return AnnotatedRegion<SystemUiOverlayStyle>(
+              value: SystemUiOverlayStyle(
+                statusBarColor: Colors.transparent,
+                statusBarIconBrightness:
+                    isDark ? Brightness.light : Brightness.dark,
+                statusBarBrightness:
+                    isDark ? Brightness.dark : Brightness.light,
+                systemNavigationBarColor: scheme.surface,
+                systemNavigationBarIconBrightness:
+                    isDark ? Brightness.light : Brightness.dark,
+              ),
+              child: child ?? const SizedBox.shrink(),
+            );
           },
           // Router is stable — never recreated
           routerConfig: _router,

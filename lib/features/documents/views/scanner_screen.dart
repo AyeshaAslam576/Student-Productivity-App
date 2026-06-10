@@ -7,9 +7,9 @@ import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 
-import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_text_styles.dart';
+import '../../../core/theme/app_palette.dart';
 import '../../../core/widgets/brainup_button.dart';
+import '../models/scanner_editor_route_args.dart';
 import '../services/scanner_service.dart';
 import 'widgets/scanner_overlay.dart';
 
@@ -37,10 +37,6 @@ class _ScannerScreenState extends State<ScannerScreen>
   Timer? _edgeSimTimer;
 
   late final AnimationController _shutterController;
-
-  bool _isDark(BuildContext c) => Theme.of(c).brightness == Brightness.dark;
-  Color _accent(BuildContext c) =>
-      _isDark(c) ? AppColors.accent : AppColors.lightAccent;
 
   @override
   void initState() {
@@ -214,12 +210,15 @@ class _ScannerScreenState extends State<ScannerScreen>
     if (_pages.isEmpty) return;
     _stopBurstMode();
     final snapshot = List<File>.from(_pages);
-    context.push('/documents/scanner-editor', extra: snapshot);
+    context.push(
+      '/documents/scanner-editor',
+      extra: ScannerEditorRouteArgs(pages: snapshot, processOnLoad: false),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final accent = _accent(context);
+    final accent = context.colors.accent;
     final cameraReady = _camera != null && _camera!.value.isInitialized;
 
     return Scaffold(
@@ -324,7 +323,7 @@ class _TopControls extends StatelessWidget {
               icon: flashOn
                   ? Icons.flash_on_rounded
                   : Icons.flash_off_rounded,
-              color: flashOn ? AppColors.warning : Colors.white70,
+              color: flashOn ? context.colors.warning : Colors.white70,
               onTap: onToggleFlash,
               tooltip: 'Flash',
             ),
@@ -405,7 +404,7 @@ class _BatchModeToggle extends StatelessWidget {
             const SizedBox(width: 6),
             Text(
               active ? 'Auto' : 'Batch',
-              style: AppTextStyles.labelSmall.copyWith(
+              style: context.text.labelSmall.copyWith(
                 color: active ? Colors.white : Colors.white70,
               ),
             ),
@@ -445,7 +444,7 @@ class _BurstCountdownOverlay extends StatelessWidget {
             ),
             child: Text(
               countdown > 0 ? '$countdown' : '·',
-              style: AppTextStyles.display.copyWith(
+              style: context.text.display.copyWith(
                 color: Colors.white,
                 fontSize: 56,
               ),
@@ -466,6 +465,7 @@ class _EdgeDetectionBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final success = context.colors.success;
     return IgnorePointer(
       child: Center(
         child: AnimatedOpacity(
@@ -475,11 +475,11 @@ class _EdgeDetectionBadge extends StatelessWidget {
             padding:
                 const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
             decoration: BoxDecoration(
-              color: AppColors.success.withOpacity(0.9),
+              color: success.withOpacity(0.9),
               borderRadius: BorderRadius.circular(24),
               boxShadow: [
                 BoxShadow(
-                  color: AppColors.success.withOpacity(0.4),
+                  color: success.withOpacity(0.4),
                   blurRadius: 12,
                   offset: const Offset(0, 2),
                 ),
@@ -496,7 +496,7 @@ class _EdgeDetectionBadge extends StatelessWidget {
                 const SizedBox(width: 6),
                 Text(
                   'Edge detected',
-                  style: AppTextStyles.labelSmall.copyWith(
+                  style: context.text.labelSmall.copyWith(
                     color: Colors.white,
                   ),
                 ),
@@ -649,7 +649,7 @@ class _ThumbnailStack extends StatelessWidget {
                 child: Text(
                   '${pages.length}',
                   textAlign: TextAlign.center,
-                  style: AppTextStyles.labelSmall
+                  style: context.text.labelSmall
                       .copyWith(color: Colors.white, fontSize: 10),
                 ),
               ),

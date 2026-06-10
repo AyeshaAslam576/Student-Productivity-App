@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
-import '../theme/app_colors.dart';
+import '../theme/app_palette.dart';
 import '../theme/app_spacing.dart';
-import '../theme/app_text_styles.dart';
 
 class BrainUpAppBar extends StatelessWidget implements PreferredSizeWidget {
   final String title;
@@ -32,14 +31,15 @@ class BrainUpAppBar extends StatelessWidget implements PreferredSizeWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return Container(
       height: 64 + MediaQuery.of(context).padding.top,
       padding: EdgeInsets.only(top: MediaQuery.of(context).padding.top),
       decoration: BoxDecoration(
-        color: backgroundColor ?? AppColors.surface,
+        color: backgroundColor ?? colors.surface,
         border: showBorder
-            ? const Border(
-                bottom: BorderSide(color: AppColors.surfaceBorder, width: 0.5),
+            ? Border(
+                bottom: BorderSide(color: colors.surfaceBorder, width: 0.5),
               )
             : null,
       ),
@@ -49,7 +49,7 @@ class BrainUpAppBar extends StatelessWidget implements PreferredSizeWidget {
           children: [
             if (leading != null) ...[leading!, const SizedBox(width: 12)],
             if (showAvatar) ...[
-              _buildAvatar(),
+              _buildAvatar(context),
               const SizedBox(width: 12),
             ],
             Expanded(
@@ -57,9 +57,9 @@ class BrainUpAppBar extends StatelessWidget implements PreferredSizeWidget {
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title, style: AppTextStyles.h3),
+                  Text(title, style: context.text.h3),
                   if (subtitle != null)
-                    Text(subtitle!, style: AppTextStyles.bodySmall),
+                    Text(subtitle!, style: context.text.bodySmall),
                 ],
               ),
             ),
@@ -70,25 +70,26 @@ class BrainUpAppBar extends StatelessWidget implements PreferredSizeWidget {
     );
   }
 
-  Widget _buildAvatar() {
+  Widget _buildAvatar(BuildContext context) {
+    final colors = context.colors;
     if (avatarUrl != null) {
       return CircleAvatar(
         radius: 20,
         backgroundImage: NetworkImage(avatarUrl!),
-        backgroundColor: AppColors.surfaceElevated,
+        backgroundColor: colors.surfaceElevated,
       );
     }
     return Container(
       width: 40,
       height: 40,
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         shape: BoxShape.circle,
-        gradient: AppColors.accentGradient,
+        gradient: colors.accentGradient,
       ),
       child: Center(
         child: Text(
           avatarInitials ?? '?',
-          style: AppTextStyles.label.copyWith(color: Colors.white),
+          style: context.text.label.copyWith(color: Colors.white),
         ),
       ),
     );

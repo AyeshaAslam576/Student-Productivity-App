@@ -8,8 +8,9 @@ import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 import 'package:provider/provider.dart';
-import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_text_styles.dart';
+import '../../../core/navigation/back_navigation.dart';
+import '../../../core/theme/app_palette.dart';
+import '../../../core/widgets/brainup_markdown.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/utils/date_utils.dart';
 import '../models/ai_session_model.dart';
@@ -61,21 +62,22 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     final vm = context.watch<AiViewModel>();
     return Scaffold(
-      backgroundColor: AppColors.surface,
-      drawer: _ChatSessionsDrawer(vm: vm),
+      backgroundColor: colors.surface,
+      drawer: const _ChatSessionsDrawer(),
       body: SafeArea(
         child: Column(
           children: [
             // ─── AppBar ───────────────────────────────────────────────────
             Container(
               padding: const EdgeInsets.fromLTRB(4, 8, 8, 12),
-              decoration: const BoxDecoration(
-                color: AppColors.surface,
+              decoration: BoxDecoration(
+                color: colors.surface,
                 border: Border(
                     bottom: BorderSide(
-                        color: AppColors.surfaceBorder, width: 0.5)),
+                        color: colors.surfaceBorder, width: 0.5)),
               ),
               child: Row(
                 children: [
@@ -83,49 +85,43 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
                   Builder(
                     builder: (ctx) => IconButton(
                       onPressed: () => Scaffold.of(ctx).openDrawer(),
-                      icon: const Icon(Icons.menu_rounded,
-                          color: AppColors.textPrimary),
+                      icon: Icon(Icons.menu_rounded,
+                          color: colors.textPrimary),
                       tooltip: 'Chat History',
                     ),
                   ),
                   // Back
-                  IconButton(
-                    onPressed: () {
-                      if (context.canPop()) {
-                        context.pop();
-                      } else {
-                        context.go('/home');
-                      }
-                    },
-                    icon: const Icon(Icons.arrow_back_rounded,
-                        color: AppColors.textPrimary),
+                  brainUpBackButton(
+                    context,
+                    fallback: brainupAiToolsFallback,
+                    iconColor: colors.textPrimary,
                   ),
                   // Bot avatar
                   Container(
                     padding: const EdgeInsets.all(6),
                     decoration: BoxDecoration(
-                      color: AppColors.info.withOpacity(0.12),
+                      color: colors.info.withOpacity(0.12),
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(Icons.smart_toy_rounded,
-                        color: AppColors.info, size: 22),
+                    child: Icon(Icons.smart_toy_rounded,
+                        color: colors.info, size: 22),
                   ),
                   const SizedBox(width: 10),
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('AI Chatbot', style: AppTextStyles.h4),
+                      Text('AI Chatbot', style: context.text.h4),
                       Row(
                         children: [
                           Container(
                               width: 6,
                               height: 6,
-                              decoration: const BoxDecoration(
-                                  color: AppColors.success,
+                              decoration: BoxDecoration(
+                                  color: colors.success,
                                   shape: BoxShape.circle)),
                           const SizedBox(width: 4),
                           Text('Online · llama3.3-70b',
-                              style: AppTextStyles.caption),
+                              style: context.text.caption),
                         ],
                       ),
                     ],
@@ -133,9 +129,9 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
                   const Spacer(),
                   // New Chat
                   IconButton(
-                    onPressed: () => vm.clearChat(),
-                    icon: const Icon(Icons.add_rounded,
-                        color: AppColors.accent, size: 24),
+                    onPressed: () async => await vm.clearChat(),
+                    icon: Icon(Icons.add_rounded,
+                        color: colors.accent, size: 24),
                     tooltip: 'New Chat',
                   ),
                 ],
@@ -155,19 +151,19 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
                             Container(
                               padding: const EdgeInsets.all(20),
                               decoration: BoxDecoration(
-                                color: AppColors.info.withOpacity(0.08),
+                                color: colors.info.withOpacity(0.08),
                                 shape: BoxShape.circle,
                               ),
-                              child: const Icon(Icons.smart_toy_rounded,
-                                  color: AppColors.info, size: 48),
+                              child: Icon(Icons.smart_toy_rounded,
+                                  color: colors.info, size: 48),
                             ),
                             const SizedBox(height: 16),
                             Text('Hi! I\'m your AI study assistant',
-                                style: AppTextStyles.h4,
+                                style: context.text.h4,
                                 textAlign: TextAlign.center),
                             const SizedBox(height: 8),
                             Text('Ask me anything academic!',
-                                style: AppTextStyles.bodySmall,
+                                style: context.text.bodySmall,
                                 textAlign: TextAlign.center),
                             const SizedBox(height: 24),
                             Wrap(
@@ -189,17 +185,17 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
                                           padding: const EdgeInsets.symmetric(
                                               horizontal: 14, vertical: 8),
                                           decoration: BoxDecoration(
-                                            color: AppColors.surfaceElevated,
+                                            color: colors.surfaceElevated,
                                             borderRadius:
                                                 BorderRadius.circular(20),
                                             border: Border.all(
                                                 color:
-                                                    AppColors.surfaceBorder,
+                                                    colors.surfaceBorder,
                                                 width: 0.5),
                                           ),
                                           child: Text(s,
                                               style:
-                                                  AppTextStyles.labelSmall),
+                                                  context.text.labelSmall),
                                         ),
                                       ))
                                   .toList(),
@@ -244,11 +240,11 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
             Container(
               padding: EdgeInsets.fromLTRB(
                   16, 8, 16, MediaQuery.of(context).padding.bottom + 8),
-              decoration: const BoxDecoration(
-                color: AppColors.surfaceCard,
+              decoration: BoxDecoration(
+                color: colors.surfaceCard,
                 border: Border(
                     top: BorderSide(
-                        color: AppColors.surfaceBorder, width: 0.5)),
+                        color: colors.surfaceBorder, width: 0.5)),
               ),
               child: Row(
                 children: [
@@ -256,20 +252,20 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
                     child: Container(
                       constraints: const BoxConstraints(maxHeight: 120),
                       decoration: BoxDecoration(
-                        color: AppColors.surfaceElevated,
+                        color: colors.surfaceElevated,
                         borderRadius: BorderRadius.circular(24),
                         border: Border.all(
-                            color: AppColors.surfaceBorder, width: 0.5),
+                            color: colors.surfaceBorder, width: 0.5),
                       ),
                       child: TextField(
                         controller: _ctrl,
                         maxLines: null,
-                        style: AppTextStyles.body,
-                        cursorColor: AppColors.accent,
+                        style: context.text.body,
+                        cursorColor: colors.accent,
                         decoration: InputDecoration(
                           hintText: 'Type a message...',
-                          hintStyle: AppTextStyles.body
-                              .copyWith(color: AppColors.textMuted),
+                          hintStyle: context.text.body
+                              .copyWith(color: colors.textMuted),
                           border: InputBorder.none,
                           contentPadding: const EdgeInsets.symmetric(
                               horizontal: 16, vertical: 10),
@@ -284,9 +280,9 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
                     child: Container(
                       width: 44,
                       height: 44,
-                      decoration: const BoxDecoration(
+                      decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        gradient: AppColors.accentGradient,
+                        gradient: colors.accentGradient,
                       ),
                       child: const Icon(Icons.send_rounded,
                           color: Colors.white, size: 20),
@@ -304,18 +300,32 @@ class _ChatbotScreenState extends State<ChatbotScreen> {
 
 // ─── Sessions Drawer ──────────────────────────────────────────────────────────
 
-class _ChatSessionsDrawer extends StatelessWidget {
-  final AiViewModel vm;
-  const _ChatSessionsDrawer({required this.vm});
+class _ChatSessionsDrawer extends StatefulWidget {
+  const _ChatSessionsDrawer();
+
+  @override
+  State<_ChatSessionsDrawer> createState() => _ChatSessionsDrawerState();
+}
+
+class _ChatSessionsDrawerState extends State<_ChatSessionsDrawer> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) context.read<AiViewModel>().loadRecentSessions();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
+    final vm = context.watch<AiViewModel>();
+    final colors = context.colors;
     final sessions = vm.recentSessions
         .where((s) => s.type == SessionType.chatbot)
         .toList();
 
     return Drawer(
-      backgroundColor: AppColors.surfaceCard,
+      backgroundColor: colors.surfaceCard,
       child: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -325,42 +335,48 @@ class _ChatSessionsDrawer extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(20, 20, 12, 20),
               child: Row(
                 children: [
-                  const Icon(Icons.history_rounded,
-                      color: AppColors.accent, size: 22),
+                  Icon(Icons.history_rounded,
+                      color: colors.accent, size: 22),
                   const SizedBox(width: 10),
-                  Text('Chat History', style: AppTextStyles.h4),
+                  Text('Chat History', style: context.text.h4),
                   const Spacer(),
                   IconButton(
-                    onPressed: () {
-                      vm.clearChat();
-                      Navigator.pop(context);
+                    onPressed: () async {
+                      await vm.clearChat();
+                      if (context.mounted) Navigator.pop(context);
                     },
-                    icon: const Icon(Icons.add_rounded,
-                        color: AppColors.accent, size: 22),
+                    icon: Icon(Icons.add_rounded,
+                        color: colors.accent, size: 22),
                     tooltip: 'New Chat',
                   ),
                 ],
               ),
             ),
-            const Divider(color: AppColors.surfaceBorder, height: 1),
+            Divider(color: colors.surfaceBorder, height: 1),
             const SizedBox(height: 8),
 
             // ── Sessions list ───────────────────────────────────────────
             Expanded(
               child: sessions.isEmpty
                   ? Center(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.chat_bubble_outline_rounded,
-                              color: AppColors.textMuted, size: 40),
-                          const SizedBox(height: 12),
-                          Text(
-                            'No previous chats',
-                            style: AppTextStyles.bodySmall
-                                .copyWith(color: AppColors.textMuted),
-                          ),
-                        ],
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 24),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.chat_bubble_outline_rounded,
+                                color: colors.textMuted, size: 40),
+                            const SizedBox(height: 12),
+                            Text(
+                              vm.canPersistSessions
+                                  ? 'No previous chats'
+                                  : 'Sign in to save and view chat history',
+                              style: context.text.bodySmall
+                                  .copyWith(color: colors.textMuted),
+                              textAlign: TextAlign.center,
+                            ),
+                          ],
+                        ),
                       ),
                     )
                   : ListView.builder(
@@ -406,42 +422,43 @@ class _SessionTile extends StatefulWidget {
 class _SessionTileState extends State<_SessionTile> {
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return ListTile(
       contentPadding:
           const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
       shape:
           RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      leading: const CircleAvatar(
-        backgroundColor: Color(0xFF1A3A5C),
+      leading: CircleAvatar(
+        backgroundColor: const Color(0xFF1A3A5C),
         child: Icon(Icons.chat_bubble_outline_rounded,
-            color: AppColors.accent, size: 16),
+            color: colors.accent, size: 16),
       ),
       title: Text(
         widget.session.preview,
         style:
-            AppTextStyles.bodySmall.copyWith(fontWeight: FontWeight.w600),
+            context.text.bodySmall.copyWith(fontWeight: FontWeight.w600),
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
       ),
       subtitle: Text(
         widget.session.formattedDate,
-        style: AppTextStyles.caption
-            .copyWith(color: AppColors.textMuted, fontSize: 10),
+        style: context.text.caption
+            .copyWith(color: colors.textMuted, fontSize: 10),
       ),
       trailing: PopupMenuButton<_SessionAction>(
-        color: AppColors.surfaceElevated,
-        icon: const Icon(Icons.more_vert_rounded,
-            color: AppColors.textMuted, size: 18),
+        color: colors.surfaceElevated,
+        icon: Icon(Icons.more_vert_rounded,
+            color: colors.textMuted, size: 18),
         shape:
             RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         onSelected: _onAction,
-        itemBuilder: (_) => const [
+        itemBuilder: (ctx) => [
           PopupMenuItem(
             value: _SessionAction.rename,
             child: _MenuRow(
               icon: Icons.drive_file_rename_outline_rounded,
               label: 'Rename',
-              color: AppColors.accent,
+              color: ctx.colors.accent,
             ),
           ),
           PopupMenuItem(
@@ -449,16 +466,16 @@ class _SessionTileState extends State<_SessionTile> {
             child: _MenuRow(
               icon: Icons.picture_as_pdf_rounded,
               label: 'Export as PDF',
-              color: AppColors.success,
+              color: ctx.colors.success,
             ),
           ),
-          PopupMenuDivider(),
+          const PopupMenuDivider(),
           PopupMenuItem(
             value: _SessionAction.delete,
             child: _MenuRow(
               icon: Icons.delete_outline_rounded,
               label: 'Delete',
-              color: AppColors.error,
+              color: ctx.colors.error,
             ),
           ),
         ],
@@ -593,26 +610,26 @@ class _SessionTileState extends State<_SessionTile> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.surfaceCard,
+        backgroundColor: ctx.colors.surfaceCard,
         shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16)),
-        title: Text('Delete Chat?', style: AppTextStyles.h4),
+        title: Text('Delete Chat?', style: ctx.text.h4),
         content: Text(
           '"${widget.session.preview}" will be permanently deleted.',
-          style: AppTextStyles.bodySmall,
+          style: ctx.text.bodySmall,
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
             child: Text('Cancel',
-                style: AppTextStyles.body
-                    .copyWith(color: AppColors.textMuted)),
+                style: ctx.text.body
+                    .copyWith(color: ctx.colors.textMuted)),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
             child: Text('Delete',
-                style: AppTextStyles.body.copyWith(
-                    color: AppColors.error,
+                style: ctx.text.body.copyWith(
+                    color: ctx.colors.error,
                     fontWeight: FontWeight.w700)),
           ),
         ],
@@ -661,28 +678,29 @@ class _RenameDialogState extends State<_RenameDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return AlertDialog(
-      backgroundColor: AppColors.surfaceCard,
+      backgroundColor: colors.surfaceCard,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      title: Text('Rename Chat', style: AppTextStyles.h4),
+      title: Text('Rename Chat', style: context.text.h4),
       content: TextField(
         controller: _ctrl,
         autofocus: true,
-        style: AppTextStyles.body,
-        cursorColor: AppColors.accent,
+        style: context.text.body,
+        cursorColor: colors.accent,
         decoration: InputDecoration(
           hintText: 'Enter a name...',
           hintStyle:
-              AppTextStyles.body.copyWith(color: AppColors.textMuted),
+              context.text.body.copyWith(color: colors.textMuted),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(10),
-            borderSide: const BorderSide(
-                color: AppColors.surfaceBorder, width: 0.5),
+            borderSide: BorderSide(
+                color: colors.surfaceBorder, width: 0.5),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(10),
             borderSide:
-                const BorderSide(color: AppColors.accent, width: 1.5),
+                BorderSide(color: colors.accent, width: 1.5),
           ),
           contentPadding:
               const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
@@ -693,14 +711,14 @@ class _RenameDialogState extends State<_RenameDialog> {
         TextButton(
           onPressed: () => Navigator.pop(context),
           child: Text('Cancel',
-              style: AppTextStyles.body
-                  .copyWith(color: AppColors.textMuted)),
+              style: context.text.body
+                  .copyWith(color: colors.textMuted)),
         ),
         TextButton(
           onPressed: _submit,
           child: Text('Save',
-              style: AppTextStyles.body.copyWith(
-                  color: AppColors.accent, fontWeight: FontWeight.w700)),
+              style: context.text.body.copyWith(
+                  color: colors.accent, fontWeight: FontWeight.w700)),
         ),
       ],
     );
@@ -723,7 +741,7 @@ class _MenuRow extends StatelessWidget {
         Icon(icon, color: color, size: 18),
         const SizedBox(width: 12),
         Text(label,
-            style: AppTextStyles.body.copyWith(color: AppColors.textPrimary)),
+            style: context.text.body.copyWith(color: context.colors.textPrimary)),
       ],
     );
   }
@@ -741,6 +759,7 @@ class _ChatBubble extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Row(
@@ -753,11 +772,11 @@ class _ChatBubble extends StatelessWidget {
               width: 30,
               height: 30,
               decoration: BoxDecoration(
-                color: AppColors.info.withOpacity(0.12),
+                color: colors.info.withOpacity(0.12),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.smart_toy_rounded,
-                  size: 16, color: AppColors.info),
+              child: Icon(Icons.smart_toy_rounded,
+                  size: 16, color: colors.info),
             ),
             const SizedBox(width: 8),
           ],
@@ -771,8 +790,8 @@ class _ChatBubble extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(
                       horizontal: 14, vertical: 10),
                   decoration: BoxDecoration(
-                    gradient: isUser ? AppColors.accentGradient : null,
-                    color: isUser ? null : AppColors.surfaceCard,
+                    gradient: isUser ? colors.accentGradient : null,
+                    color: isUser ? null : colors.surfaceCard,
                     borderRadius: BorderRadius.only(
                       topLeft: const Radius.circular(16),
                       topRight: const Radius.circular(16),
@@ -782,26 +801,31 @@ class _ChatBubble extends StatelessWidget {
                     border: isUser
                         ? null
                         : Border.all(
-                            color: AppColors.surfaceBorder, width: 0.5),
+                            color: colors.surfaceBorder, width: 0.5),
                   ),
-                  child: SelectableText(
-                    message,
-                    style: AppTextStyles.body.copyWith(
-                      color:
-                          isUser ? Colors.white : AppColors.textPrimary,
-                      height: 1.5,
-                    ),
-                  ),
+                  child: isUser
+                      ? SelectableText(
+                          message,
+                          style: context.text.body.copyWith(
+                            color: Colors.white,
+                            height: 1.5,
+                          ),
+                        )
+                      : BrainUpMarkdown(
+                          data: message,
+                          textColor: colors.textPrimary,
+                          linkColor: colors.accent,
+                        ),
                 ),
                 const SizedBox(height: 3),
                 Text(
                   AppDateUtils.formatTime(time),
-                  style: AppTextStyles.caption.copyWith(fontSize: 10),
+                  style: context.text.caption.copyWith(fontSize: 10),
                 ),
                 if (!isUser) ...[
                   const SizedBox(height: 4),
-                  GestureDetector(
-                    onTap: () {
+                  IconButton(
+                    onPressed: () {
                       Clipboard.setData(ClipboardData(text: message));
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
@@ -810,11 +834,12 @@ class _ChatBubble extends StatelessWidget {
                         ),
                       );
                     },
-                    child: const Icon(
-                      Icons.copy_rounded,
-                      size: 13,
-                      color: AppColors.textMuted,
-                    ),
+                    icon: Icon(Icons.copy_rounded, color: colors.textMuted),
+                    iconSize: 20,
+                    padding: const EdgeInsets.all(10),
+                    constraints: const BoxConstraints(
+                        minWidth: 44, minHeight: 44),
+                    tooltip: 'Copy',
                   ),
                 ],
               ],
@@ -825,8 +850,8 @@ class _ChatBubble extends StatelessWidget {
             Container(
               width: 30,
               height: 30,
-              decoration: const BoxDecoration(
-                gradient: AppColors.accentGradient,
+              decoration: BoxDecoration(
+                gradient: colors.accentGradient,
                 shape: BoxShape.circle,
               ),
               child: const Icon(Icons.person_rounded,
@@ -876,17 +901,18 @@ class _TypingIndicatorState extends State<_TypingIndicator>
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
-        color: AppColors.surfaceCard,
+        color: colors.surfaceCard,
         borderRadius: const BorderRadius.only(
           topLeft: Radius.circular(16),
           topRight: Radius.circular(16),
           bottomRight: Radius.circular(16),
           bottomLeft: Radius.circular(4),
         ),
-        border: Border.all(color: AppColors.surfaceBorder, width: 0.5),
+        border: Border.all(color: colors.surfaceBorder, width: 0.5),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -898,7 +924,7 @@ class _TypingIndicatorState extends State<_TypingIndicator>
               width: 7,
               height: 7,
               decoration: BoxDecoration(
-                color: AppColors.accent.withOpacity(
+                color: colors.accent.withOpacity(
                     0.4 + _controllers[i].value * 0.6),
                 shape: BoxShape.circle,
               ),

@@ -17,9 +17,9 @@ class SubTask {
       {'id': id, 'title': title, 'isCompleted': isCompleted};
 
   factory SubTask.fromMap(Map<String, dynamic> m) => SubTask(
-        id: m['id'] as String,
-        title: m['title'] as String,
-        isCompleted: m['isCompleted'] as bool? ?? false,
+        id: m['id']?.toString() ?? '',
+        title: m['title']?.toString() ?? '',
+        isCompleted: m['isCompleted'] == true,
       );
 }
 
@@ -53,7 +53,7 @@ class TaskModel {
     this.description,
     required this.createdAt,
     this.subtasks = const [],
-    this.hasReminder = false,
+    this.hasReminder = true,
     this.reminderTime,
     this.estimatedMinutes,
     this.notificationId = 0,
@@ -82,7 +82,9 @@ class TaskModel {
       description: map['description'] as String?,
       createdAt: (map['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       subtasks: (map['subtasks'] as List<dynamic>? ?? [])
-          .map((s) => SubTask.fromMap(s as Map<String, dynamic>))
+          .whereType<Map>()
+          .map((s) => SubTask.fromMap(Map<String, dynamic>.from(s)))
+          .where((s) => s.id.isNotEmpty && s.title.isNotEmpty)
           .toList(),
       hasReminder: map['hasReminder'] as bool? ?? false,
       reminderTime: (map['reminderTime'] as Timestamp?)?.toDate(),

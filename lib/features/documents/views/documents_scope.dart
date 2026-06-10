@@ -2,11 +2,12 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
-import '../../../core/theme/app_colors.dart';
+import '../../../core/navigation/back_navigation.dart';
+import '../../../core/theme/app_palette.dart';
 import '../../../core/theme/app_spacing.dart';
-import '../../../core/theme/app_text_styles.dart';
 import '../repositories/document_repository.dart';
 import '../services/doc_ai_service.dart';
 import '../viewmodels/document_viewmodel.dart';
@@ -71,7 +72,12 @@ class _DocumentsScopeGuardState extends State<_DocumentsScopeGuard> {
     super.dispose();
   }
 
-  Future<bool> _onWillPop() async {
+  String _backFallback(BuildContext context) {
+    final loc = GoRouterState.of(context).matchedLocation;
+    return loc == '/documents' ? '/home' : '/documents';
+  }
+
+  Future<bool> _allowPop() async {
     final vm = _vm;
     if (vm == null || vm.processedPages.isEmpty) return true;
     final discard = await _confirmDiscard();
@@ -87,24 +93,24 @@ class _DocumentsScopeGuardState extends State<_DocumentsScopeGuard> {
       context: context,
       barrierDismissible: false,
       builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.surfaceCard,
+        backgroundColor: ctx.colors.surfaceCard,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
         ),
-        icon: const Icon(
+        icon: Icon(
           Icons.warning_amber_rounded,
-          color: AppColors.warning,
+          color: ctx.colors.warning,
           size: 36,
         ),
         title: Text(
           'Discard scan?',
-          style: AppTextStyles.h4,
+          style: ctx.text.h4,
           textAlign: TextAlign.center,
         ),
         content: Text(
           'You have an unsaved scan in progress. Going back will discard the '
           'captured pages.',
-          style: AppTextStyles.body.copyWith(color: AppColors.textSecondary),
+          style: ctx.text.body.copyWith(color: ctx.colors.textSecondary),
           textAlign: TextAlign.center,
         ),
         actionsAlignment: MainAxisAlignment.spaceBetween,
@@ -113,8 +119,8 @@ class _DocumentsScopeGuardState extends State<_DocumentsScopeGuard> {
             onPressed: () => Navigator.pop(ctx, false),
             child: Text(
               'Cancel',
-              style: AppTextStyles.body.copyWith(
-                color: AppColors.textSecondary,
+              style: ctx.text.body.copyWith(
+                color: ctx.colors.textSecondary,
               ),
             ),
           ),
@@ -122,8 +128,8 @@ class _DocumentsScopeGuardState extends State<_DocumentsScopeGuard> {
             onPressed: () => Navigator.pop(ctx, true),
             child: Text(
               'Discard',
-              style: AppTextStyles.body.copyWith(
-                color: AppColors.error,
+              style: ctx.text.body.copyWith(
+                color: ctx.colors.error,
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -136,9 +142,14 @@ class _DocumentsScopeGuardState extends State<_DocumentsScopeGuard> {
 
   @override
   Widget build(BuildContext context) {
-    // ignore: deprecated_member_use
-    return WillPopScope(
-      onWillPop: _onWillPop,
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return;
+        if (!await _allowPop()) return;
+        if (!context.mounted) return;
+        brainupPop(context, fallback: _backFallback(context));
+      },
       child: widget.child,
     );
   }

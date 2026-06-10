@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import '../theme/app_colors.dart';
-import '../theme/app_text_styles.dart';
+import '../theme/app_palette.dart';
 import '../theme/app_spacing.dart';
 
 class BrainUpBottomNav extends StatelessWidget {
@@ -23,13 +22,14 @@ class BrainUpBottomNav extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return Container(
       height: 72 + MediaQuery.of(context).padding.bottom,
       padding: EdgeInsets.only(bottom: MediaQuery.of(context).padding.bottom),
-      decoration: const BoxDecoration(
-        color: AppColors.surfaceCard,
+      decoration: BoxDecoration(
+        color: colors.surfaceCard,
         border: Border(
-          top: BorderSide(color: AppColors.surfaceBorder, width: 0.5),
+          top: BorderSide(color: colors.surfaceBorder, width: 0.5),
         ),
       ),
       child: Row(
@@ -62,6 +62,7 @@ class _NavBarItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
@@ -70,14 +71,13 @@ class _NavBarItem extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // Accent dot indicator
             AnimatedContainer(
               duration: const Duration(milliseconds: 200),
               width: isSelected ? 4 : 0,
               height: isSelected ? 4 : 0,
               margin: const EdgeInsets.only(bottom: 4),
-              decoration: const BoxDecoration(
-                color: AppColors.accent,
+              decoration: BoxDecoration(
+                color: colors.accent,
                 shape: BoxShape.circle,
               ),
             ),
@@ -85,20 +85,20 @@ class _NavBarItem extends StatelessWidget {
               duration: const Duration(milliseconds: 200),
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: isSelected ? AppColors.accentSoft : Colors.transparent,
+                color: isSelected ? colors.accentSoft : Colors.transparent,
                 borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
               ),
               child: Icon(
                 item.icon,
                 size: 24,
-                color: isSelected ? AppColors.accent : AppColors.textMuted,
+                color: isSelected ? colors.accent : colors.textMuted,
               ),
             ),
             const SizedBox(height: 2),
             AnimatedDefaultTextStyle(
               duration: const Duration(milliseconds: 200),
-              style: AppTextStyles.labelSmall.copyWith(
-                color: isSelected ? AppColors.accent : AppColors.textMuted,
+              style: context.text.labelSmall.copyWith(
+                color: isSelected ? colors.accent : colors.textMuted,
                 fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
               ),
               child: Text(item.label),

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_palette.dart';
 
 class ScannerOverlay extends StatefulWidget {
   final bool edgeDetected;
@@ -31,7 +31,8 @@ class _ScannerOverlayState extends State<ScannerOverlay>
 
   @override
   Widget build(BuildContext context) {
-    final color = widget.edgeDetected ? AppColors.success : AppColors.accent;
+    final color =
+        widget.edgeDetected ? context.colors.success : context.colors.accent;
     return AnimatedBuilder(
       animation: _controller,
       builder: (_, __) {

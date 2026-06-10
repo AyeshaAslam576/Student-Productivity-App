@@ -3,8 +3,8 @@ import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
-import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_text_styles.dart';
+import '../../../core/navigation/back_navigation.dart';
+import '../../../core/theme/app_palette.dart';
 import '../../../core/widgets/brainup_button.dart';
 import '../../../core/widgets/brainup_text_field.dart';
 import '../services/pdf_service.dart';
@@ -22,8 +22,14 @@ class _PdfGeneratorScreenState extends State<PdfGeneratorScreen> {
   final _author = TextEditingController();
   final _content = TextEditingController();
   PdfTheme _theme = PdfTheme.academic;
-  Color _accent = AppColors.accent;
+  Color? _accent;
   bool _saving = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _accent ??= context.colors.accent;
+  }
 
   Future<void> _generate() async {
     setState(() => _saving = true);
@@ -47,10 +53,16 @@ class _PdfGeneratorScreenState extends State<PdfGeneratorScreen> {
   @override
   Widget build(BuildContext context) {
     context.read<DocumentViewModel>();
+    final colors = context.colors;
     return Scaffold(
-      backgroundColor: AppColors.surface,
+      backgroundColor: colors.surface,
       appBar: AppBar(
-          backgroundColor: AppColors.surface, title: const Text('Create PDF')),
+        backgroundColor: colors.surface,
+        automaticallyImplyLeading: false,
+        leading: brainUpBackButton(context,
+            fallback: '/documents', iconColor: colors.textPrimary),
+        title: const Text('Create PDF'),
+      ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -78,10 +90,10 @@ class _PdfGeneratorScreenState extends State<PdfGeneratorScreen> {
                 .toList(),
           ),
           const SizedBox(height: 12),
-          Text('Accent Color', style: AppTextStyles.body),
+          Text('Accent Color', style: context.text.body),
           const SizedBox(height: 8),
           BlockPicker(
-            pickerColor: _accent,
+            pickerColor: _accent ?? colors.accent,
             onColorChanged: (c) => setState(() => _accent = c),
           ),
           const SizedBox(height: 14),

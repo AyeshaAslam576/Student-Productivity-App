@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 import '../../features/auth/viewmodels/auth_viewmodel.dart';
 import '../../features/auth/views/splash_screen.dart';
 import '../../features/auth/views/onboarding_screen.dart';
@@ -9,6 +10,9 @@ import '../../features/auth/views/login_screen.dart';
 import '../../features/auth/views/signup_screen.dart';
 import '../../features/home/views/home_screen.dart';
 import '../../features/tasks/views/tasks_screen.dart';
+import '../../features/tasks/views/task_detail_screen.dart';
+import '../../features/tasks/viewmodels/task_viewmodel.dart';
+import '../theme/app_palette.dart';
 import '../../features/timetable/views/timetable_screen.dart';
 import '../../features/ai_tools/views/ai_tools_screen.dart';
 import '../../features/ai_tools/views/summarizer_screen.dart';
@@ -22,6 +26,7 @@ import '../../features/study_timer/views/study_timer_screen.dart';
 import '../../features/documents/views/documents_screen.dart';
 import '../../features/documents/views/document_library_screen.dart';
 import '../../features/documents/views/scanner_screen.dart';
+import '../../features/documents/models/scanner_editor_route_args.dart';
 import '../../features/documents/views/scanner_editor_screen.dart';
 import '../../features/documents/views/pdf_viewer_screen.dart';
 import '../../features/documents/models/document_model.dart';
@@ -29,7 +34,11 @@ import '../../features/documents/views/image_to_pdf_screen.dart';
 import '../../features/documents/views/pdf_generator_screen.dart';
 import '../../features/documents/views/qr_screen.dart';
 import '../../features/documents/views/documents_scope.dart';
+import '../navigation/back_navigation.dart';
 import '../widgets/brainup_bottom_nav.dart';
+
+Widget _rootScreen(Widget child, {String fallback = '/home'}) =>
+    BrainUpBackHandler(fallback: fallback, child: child);
 
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
 final _shellNavigatorKey = GlobalKey<NavigatorState>();
@@ -85,17 +94,17 @@ GoRouter createRouter(AuthViewModel authVM) {
       GoRoute(
         path: '/cgpa',
         parentNavigatorKey: _rootNavigatorKey,
-        builder: (_, __) => const CgpaScreen(),
+        builder: (_, __) => _rootScreen(const CgpaScreen()),
       ),
       GoRoute(
         path: '/attendance',
         parentNavigatorKey: _rootNavigatorKey,
-        builder: (_, __) => const AttendanceScreen(),
+        builder: (_, __) => _rootScreen(const AttendanceScreen()),
       ),
       GoRoute(
         path: '/study-timer',
         parentNavigatorKey: _rootNavigatorKey,
-        builder: (_, __) => const StudyTimerScreen(),
+        builder: (_, __) => _rootScreen(const StudyTimerScreen()),
       ),
       GoRoute(
         path: '/documents',
@@ -121,15 +130,33 @@ GoRouter createRouter(AuthViewModel authVM) {
         parentNavigatorKey: _rootNavigatorKey,
         builder: (_, state) {
           final extra = state.extra;
-          final initial = extra is List<File>
-              ? List<File>.from(extra)
-              : extra is List
-                  ? extra
-                      .map<File>((e) => e is File ? e : File(e.toString()))
-                      .toList()
-                  : const <File>[];
+          var initial = const <File>[];
+          var processOnLoad = false;
+
+          if (extra is ScannerEditorRouteArgs) {
+            initial = List<File>.from(extra.pages);
+            processOnLoad = extra.processOnLoad;
+          } else if (extra is Map) {
+            final raw = extra['pages'];
+            if (raw is List) {
+              initial = raw
+                  .map<File>((e) => e is File ? e : File(e.toString()))
+                  .toList();
+            }
+            processOnLoad = extra['processOnLoad'] == true;
+          } else if (extra is List<File>) {
+            initial = List<File>.from(extra);
+          } else if (extra is List) {
+            initial = extra
+                .map<File>((e) => e is File ? e : File(e.toString()))
+                .toList();
+          }
+
           return DocumentsScope(
-            child: ScannerEditorScreen(initialPages: initial),
+            child: ScannerEditorScreen(
+              initialPages: initial,
+              processOnLoad: processOnLoad,
+            ),
           );
         },
       ),
@@ -161,7 +188,9 @@ GoRouter createRouter(AuthViewModel authVM) {
               ),
             );
           }
-          return const Scaffold(body: Center(child: Text('No document')));
+          return const DocumentsScope(
+            child: Scaffold(body: Center(child: Text('No document'))),
+          );
         },
       ),
       GoRoute(
@@ -177,7 +206,8 @@ GoRouter createRouter(AuthViewModel authVM) {
       GoRoute(
         path: '/documents/pdf-generator',
         parentNavigatorKey: _rootNavigatorKey,
-        builder: (_, __) => const DocumentsScope(child: PdfGeneratorScreen()),
+        builder: (_, __) =>
+            const DocumentsScope(child: PdfGeneratorScreen()),
       ),
       GoRoute(
         path: '/documents/qr',
@@ -187,22 +217,76 @@ GoRouter createRouter(AuthViewModel authVM) {
       GoRoute(
         path: '/ai/summarizer',
         parentNavigatorKey: _rootNavigatorKey,
-        builder: (_, __) => const SummarizerScreen(),
+        builder: (_, state) {
+          final extra = state.extra;
+          final initialText = extra is String ? extra.trim() : null;
+          return _rootScreen(
+            SummarizerScreen(
+              initialText: initialText != null && initialText.isNotEmpty
+                  ? initialText
+                  : null,
+            ),
+            fallback: brainupAiToolsFallback,
+          );
+        },
       ),
       GoRoute(
         path: '/ai/grammar',
         parentNavigatorKey: _rootNavigatorKey,
-        builder: (_, __) => const GrammarScreen(),
+        builder: (_, __) => _rootScreen(
+          const GrammarScreen(),
+          fallback: brainupAiToolsFallback,
+        ),
       ),
       GoRoute(
         path: '/ai/chatbot',
         parentNavigatorKey: _rootNavigatorKey,
-        builder: (_, __) => const ChatbotScreen(),
+        builder: (_, __) => _rootScreen(
+          const ChatbotScreen(),
+          fallback: brainupAiToolsFallback,
+        ),
       ),
       GoRoute(
         path: '/ai/tts',
         parentNavigatorKey: _rootNavigatorKey,
-        builder: (_, __) => const TtsScreen(),
+        builder: (_, __) => _rootScreen(
+          const TtsScreen(),
+          fallback: brainupAiToolsFallback,
+        ),
+      ),
+      GoRoute(
+        path: '/tasks/:id',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) {
+          final id = state.pathParameters['id']!;
+          final vm = context.read<TaskViewModel>();
+          final matches = vm.allTasks.where((t) => t.id == id);
+          if (matches.isEmpty) {
+            return _rootScreen(
+              Scaffold(
+                backgroundColor: context.colors.surface,
+                appBar: AppBar(
+                  backgroundColor: context.colors.surface,
+                  automaticallyImplyLeading: false,
+                  leading: brainUpBackButton(context, fallback: '/tasks'),
+                ),
+                body: Center(
+                  child: Text(
+                    'Task not found',
+                    style: context.text.body.copyWith(
+                      color: context.colors.textSecondary,
+                    ),
+                  ),
+                ),
+              ),
+              fallback: '/tasks',
+            );
+          }
+          return _rootScreen(
+            TaskDetailScreen(task: matches.first, vm: vm),
+            fallback: '/tasks',
+          );
+        },
       ),
       // Bottom nav shell
       ShellRoute(
@@ -249,11 +333,18 @@ class MainShell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: child,
-      bottomNavigationBar: BrainUpBottomNav(
-        currentIndex: _currentIndex(context),
-        onTap: (i) => context.go(_routes[i]),
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        brainupShellBack(context);
+      },
+      child: Scaffold(
+        body: child,
+        bottomNavigationBar: BrainUpBottomNav(
+          currentIndex: _currentIndex(context),
+          onTap: (i) => context.go(_routes[i]),
+        ),
       ),
     );
   }

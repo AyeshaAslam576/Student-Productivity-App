@@ -40,20 +40,25 @@ class UserModel {
         'createdAt': Timestamp.fromDate(createdAt),
       };
 
+  static const Object _unset = Object();
+
   UserModel copyWith({
     String? name,
     String? email,
-    String? university,
-    String? photoUrl,
-    String? photoBase64,
+    Object? university = _unset,
+    Object? photoUrl = _unset,
+    Object? photoBase64 = _unset,
   }) {
     return UserModel(
       uid: uid,
       name: name ?? this.name,
       email: email ?? this.email,
-      university: university ?? this.university,
-      photoUrl: photoUrl ?? this.photoUrl,
-      photoBase64: photoBase64 ?? this.photoBase64,
+      university:
+          university == _unset ? this.university : university as String?,
+      photoUrl: photoUrl == _unset ? this.photoUrl : photoUrl as String?,
+      photoBase64: photoBase64 == _unset
+          ? this.photoBase64
+          : photoBase64 as String?,
       createdAt: createdAt,
     );
   }

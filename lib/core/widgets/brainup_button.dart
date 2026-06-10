@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import '../theme/app_colors.dart';
+import '../theme/app_palette.dart';
 import '../theme/app_spacing.dart';
-import '../theme/app_text_styles.dart';
 
 class BrainUpButton extends StatefulWidget {
   final String label;
@@ -167,41 +166,42 @@ class _PrimaryButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    final colors = context.colors;
+    return SizedBox(
       width: width ?? double.infinity,
       height: height,
-      decoration: BoxDecoration(
-        gradient: isDisabled
-            ? null
-            : AppColors.accentGradient,
-        color: isDisabled ? AppColors.surfaceElevated : null,
-        borderRadius: BorderRadius.circular(borderRadius),
-      ),
-      child: Center(
-        child: isLoading
-            ? const SizedBox(
-                width: 22,
-                height: 22,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2.5,
-                  color: Colors.white,
-                ),
-              )
-            : Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (icon != null) ...[
-                    icon!,
-                    const SizedBox(width: 8),
-                  ],
-                  Text(
-                    label,
-                    style: AppTextStyles.button.copyWith(
-                      color: isDisabled ? AppColors.textMuted : Colors.white,
-                    ),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          gradient: isDisabled ? null : colors.accentGradient,
+          color: isDisabled ? colors.surfaceElevated : null,
+          borderRadius: BorderRadius.circular(borderRadius),
+        ),
+        child: Center(
+          child: isLoading
+              ? const SizedBox(
+                  width: 22,
+                  height: 22,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2.5,
+                    color: Colors.white,
                   ),
-                ],
-              ),
+                )
+              : Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (icon != null) ...[
+                      icon!,
+                      const SizedBox(width: 8),
+                    ],
+                    Text(
+                      label,
+                      style: context.text.button.copyWith(
+                        color: isDisabled ? colors.textMuted : Colors.white,
+                      ),
+                    ),
+                  ],
+                ),
+        ),
       ),
     );
   }
@@ -228,42 +228,46 @@ class _SecondaryButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    final colors = context.colors;
+    return SizedBox(
       width: width ?? double.infinity,
       height: height,
-      decoration: BoxDecoration(
-        color: Colors.transparent,
-        borderRadius: BorderRadius.circular(borderRadius),
-        border: Border.all(
-          color: isDisabled ? AppColors.surfaceBorder : AppColors.accent,
-          width: 1.5,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: Colors.transparent,
+          borderRadius: BorderRadius.circular(borderRadius),
+          border: Border.all(
+            color: isDisabled ? colors.surfaceBorder : colors.accent,
+            width: 1.5,
+          ),
         ),
-      ),
-      child: Center(
-        child: isLoading
-            ? const SizedBox(
-                width: 22,
-                height: 22,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2.5,
-                  color: AppColors.accent,
-                ),
-              )
-            : Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (icon != null) ...[
-                    icon!,
-                    const SizedBox(width: 8),
-                  ],
-                  Text(
-                    label,
-                    style: AppTextStyles.button.copyWith(
-                      color: isDisabled ? AppColors.textMuted : AppColors.accent,
-                    ),
+        child: Center(
+          child: isLoading
+              ? SizedBox(
+                  width: 22,
+                  height: 22,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2.5,
+                    color: colors.accent,
                   ),
-                ],
-              ),
+                )
+              : Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (icon != null) ...[
+                      icon!,
+                      const SizedBox(width: 8),
+                    ],
+                    Text(
+                      label,
+                      style: context.text.button.copyWith(
+                        color:
+                            isDisabled ? colors.textMuted : colors.accent,
+                      ),
+                    ),
+                  ],
+                ),
+        ),
       ),
     );
   }
@@ -290,13 +294,14 @@ class _SmallButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return Container(
       width: width,
       height: height,
       padding: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
-        gradient: isDisabled ? null : AppColors.accentGradient,
-        color: isDisabled ? AppColors.surfaceElevated : null,
+        gradient: isDisabled ? null : colors.accentGradient,
+        color: isDisabled ? colors.surfaceElevated : null,
         borderRadius: BorderRadius.circular(borderRadius),
       ),
       child: Center(
@@ -318,9 +323,9 @@ class _SmallButton extends StatelessWidget {
                   ],
                   Text(
                     label,
-                    style: AppTextStyles.button.copyWith(
+                    style: context.text.button.copyWith(
                       fontSize: 13,
-                      color: isDisabled ? AppColors.textMuted : Colors.white,
+                      color: isDisabled ? colors.textMuted : Colors.white,
                     ),
                   ),
                 ],

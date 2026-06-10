@@ -3,8 +3,8 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
 import 'package:percent_indicator/percent_indicator.dart';
 import 'package:provider/provider.dart';
-import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_text_styles.dart';
+import '../../../core/navigation/back_navigation.dart';
+import '../../../core/theme/app_palette.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/widgets/brainup_card.dart';
 import '../../../core/widgets/brainup_shimmer.dart';
@@ -22,7 +22,7 @@ class AttendanceScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final vm = context.watch<AttendanceViewModel>();
     return Scaffold(
-      backgroundColor: AppColors.surface,
+      backgroundColor: context.colors.surface,
       body: SafeArea(
         child: Column(
           children: [
@@ -32,7 +32,10 @@ class AttendanceScreen extends StatelessWidget {
                   ? const Padding(padding: EdgeInsets.all(20), child: ShimmerList(count: 4))
                   : vm.error != null
                       ? BrainUpErrorState(message: vm.error, onRetry: vm.loadAttendance)
-                      : _AttendanceBody(vm: vm),
+                      : _AttendanceBody(
+                          vm: vm,
+                          onAdd: () => _showAddSubject(context, vm),
+                        ),
             ),
           ],
         ),
@@ -43,10 +46,37 @@ class AttendanceScreen extends StatelessWidget {
   void _showAddSubject(BuildContext ctx, AttendanceViewModel vm) {
     final nameCtrl = TextEditingController();
     final suggestions = vm.subjectSuggestions;
+    final rootMessenger = ScaffoldMessenger.of(ctx);
+
+    void setName(String s) {
+      nameCtrl.value = TextEditingValue(
+        text: s,
+        selection: TextSelection.collapsed(offset: s.length),
+      );
+    }
+
+    Future<void> submit(BuildContext dialogCtx) async {
+      final name = nameCtrl.text.trim();
+      if (name.isEmpty) {
+        rootMessenger.showSnackBar(
+          const SnackBar(content: Text('Please enter a subject name')),
+        );
+        return;
+      }
+      final ok = await vm.addSubject(name);
+      if (!dialogCtx.mounted) return;
+      Navigator.pop(dialogCtx);
+      rootMessenger.showSnackBar(
+        SnackBar(
+          content: Text(ok ? 'Added "$name"' : 'Failed to add subject'),
+        ),
+      );
+    }
+
     showDialog(
       context: ctx,
-      builder: (_) => AlertDialog(
-        title: Text('Add Subject', style: AppTextStyles.h4),
+      builder: (dialogCtx) => AlertDialog(
+        title: Text('Add Subject', style: ctx.text.h4),
         content: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -54,28 +84,29 @@ class AttendanceScreen extends StatelessWidget {
             children: [
               if (suggestions.isNotEmpty) ...[
                 Text('From your timetable:',
-                    style: AppTextStyles.caption),
+                    style: ctx.text.caption),
                 const SizedBox(height: 8),
                 Wrap(
                   spacing: 8,
                   runSpacing: 6,
                   children: suggestions
                       .map((s) => GestureDetector(
-                            onTap: () => nameCtrl.text = s,
+                            behavior: HitTestBehavior.opaque,
+                            onTap: () => setName(s),
                             child: Container(
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 10, vertical: 6),
                               decoration: BoxDecoration(
-                                color: AppColors.accentSoft,
+                                color: ctx.colors.accentSoft,
                                 borderRadius: BorderRadius.circular(8),
                                 border: Border.all(
-                                    color: AppColors.accent
+                                    color: ctx.colors.accent
                                         .withOpacity(0.3)),
                               ),
                               child: Text(
                                 s,
-                                style: AppTextStyles.caption.copyWith(
-                                    color: AppColors.accent,
+                                style: ctx.text.caption.copyWith(
+                                    color: ctx.colors.accent,
                                     fontWeight: FontWeight.w600),
                               ),
                             ),
@@ -88,6 +119,9 @@ class AttendanceScreen extends StatelessWidget {
                 label: 'Subject Name',
                 controller: nameCtrl,
                 prefixIcon: const Icon(Icons.book_outlined),
+                autofocus: true,
+                textInputAction: TextInputAction.done,
+                onSubmitted: (_) => submit(dialogCtx),
                 validator: (v) =>
                     AppValidators.required(v, fieldName: 'Subject name'),
               ),
@@ -96,15 +130,11 @@ class AttendanceScreen extends StatelessWidget {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(ctx),
+            onPressed: () => Navigator.pop(dialogCtx),
             child: const Text('Cancel'),
           ),
           TextButton(
-            onPressed: () async {
-              if (nameCtrl.text.trim().isEmpty) return;
-              await vm.addSubject(nameCtrl.text.trim());
-              if (ctx.mounted) Navigator.pop(ctx);
-            },
+            onPressed: () => submit(dialogCtx),
             child: const Text('Add'),
           ),
         ],
@@ -121,23 +151,16 @@ class _AttendanceAppBar extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 8, 12, 12),
-      decoration: const BoxDecoration(
-        color: AppColors.surface,
-        border: Border(bottom: BorderSide(color: AppColors.surfaceBorder, width: 0.5)),
+      decoration: BoxDecoration(
+        color: context.colors.surface,
+        border: Border(
+            bottom: BorderSide(color: context.colors.surfaceBorder, width: 0.5)),
       ),
       child: Row(
         children: [
-          IconButton(
-            onPressed: () {
-              if (context.canPop()) {
-                context.pop();
-              } else {
-                context.go('/home');
-              }
-            },
-            icon: const Icon(Icons.arrow_back_rounded, color: AppColors.textPrimary),
-          ),
-          Text('Attendance', style: AppTextStyles.h3),
+          brainUpBackButton(context,
+              iconColor: context.colors.textPrimary),
+          Text('Attendance', style: context.text.h3),
           const Spacer(),
           TextButton.icon(
             onPressed: onAdd,
@@ -152,20 +175,22 @@ class _AttendanceAppBar extends StatelessWidget {
 
 class _AttendanceBody extends StatelessWidget {
   final AttendanceViewModel vm;
-  const _AttendanceBody({required this.vm});
+  final VoidCallback onAdd;
+  const _AttendanceBody({required this.vm, required this.onAdd});
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return RefreshIndicator(
-      color: AppColors.accent,
-      backgroundColor: AppColors.surfaceCard,
+      color: colors.accent,
+      backgroundColor: colors.surfaceCard,
       onRefresh: vm.loadAttendance,
       child: ListView(
         padding: const EdgeInsets.all(AppSpacing.screenPadding),
         children: [
           // ─── Overall % ───
           BrainUpCard(
-            gradient: AppColors.primaryGradient,
+            gradient: colors.primaryGradient,
             child: Row(
               children: [
                 CircularPercentIndicator(
@@ -180,13 +205,13 @@ class _AttendanceBody extends StatelessWidget {
                         duration: const Duration(milliseconds: 800),
                         builder: (_, val, __) => Text(
                           '${val.toStringAsFixed(0)}%',
-                          style: AppTextStyles.h4.copyWith(fontSize: 18),
+                          style: context.text.h4.copyWith(fontSize: 18),
                         ),
                       ),
                     ],
                   ),
-                  progressColor: _pctColor(vm.overallPercentage),
-                  backgroundColor: AppColors.surfaceBorder,
+                  progressColor: _pctColor(context, vm.overallPercentage),
+                  backgroundColor: colors.surfaceBorder,
                   circularStrokeCap: CircularStrokeCap.round,
                   animation: true,
                   animationDuration: 800,
@@ -196,24 +221,25 @@ class _AttendanceBody extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Overall Attendance', style: AppTextStyles.h4),
+                      Text('Overall Attendance', style: context.text.h4),
                       const SizedBox(height: 4),
-                      Text('${vm.attendance.length} subjects tracked', style: AppTextStyles.bodySmall),
+                      Text('${vm.attendance.length} subjects tracked',
+                          style: context.text.bodySmall),
                       const SizedBox(height: 12),
                       _StatusRow(
                         label: 'Safe',
                         count: vm.attendance.where((a) => a.isSafe).length,
-                        color: AppColors.success,
+                        color: colors.success,
                       ),
                       _StatusRow(
                         label: 'Warning',
                         count: vm.attendance.where((a) => a.isWarning).length,
-                        color: AppColors.warning,
+                        color: colors.warning,
                       ),
                       _StatusRow(
                         label: 'Critical',
                         count: vm.attendance.where((a) => a.isCritical).length,
-                        color: AppColors.error,
+                        color: colors.error,
                       ),
                     ],
                   ),
@@ -228,18 +254,21 @@ class _AttendanceBody extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: AppColors.warning.withOpacity(0.1),
+                color: colors.warning.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppColors.warning.withOpacity(0.4), width: 0.5),
+                border: Border.all(
+                    color: colors.warning.withOpacity(0.4), width: 0.5),
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.warning_amber_rounded, color: AppColors.warning, size: 20),
+                  Icon(Icons.warning_amber_rounded,
+                      color: colors.warning, size: 20),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
                       '⚠  ${vm.criticalSubjects.map((a) => a.subjectName).join(", ")} — attendance critical',
-                      style: AppTextStyles.bodySmall.copyWith(color: AppColors.warning),
+                      style: context.text.bodySmall
+                          .copyWith(color: colors.warning),
                     ),
                   ),
                 ],
@@ -253,10 +282,10 @@ class _AttendanceBody extends StatelessWidget {
             BrainUpEmptyState(
               variant: EmptyStateVariant.attendance,
               actionLabel: 'Add Subject',
-              onAction: () {},
+              onAction: onAdd,
             )
           else ...[
-            Text('Subject Wise', style: AppTextStyles.h4),
+            Text('Subject Wise', style: context.text.h4),
             const SizedBox(height: 12),
             ...vm.attendance.asMap().entries.map(
               (e) => Padding(
@@ -274,10 +303,10 @@ class _AttendanceBody extends StatelessWidget {
     );
   }
 
-  Color _pctColor(double pct) {
-    if (pct >= 75) return AppColors.success;
-    if (pct >= 65) return AppColors.warning;
-    return AppColors.error;
+  Color _pctColor(BuildContext context, double pct) {
+    if (pct >= 75) return context.colors.success;
+    if (pct >= 65) return context.colors.warning;
+    return context.colors.error;
   }
 }
 
@@ -295,7 +324,7 @@ class _StatusRow extends StatelessWidget {
         children: [
           Container(width: 8, height: 8, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
           const SizedBox(width: 6),
-          Text('$label: $count', style: AppTextStyles.caption.copyWith(color: color)),
+          Text('$label: $count', style: context.text.caption.copyWith(color: color)),
         ],
       ),
     );
@@ -328,9 +357,14 @@ class _SubjectAttendanceCardState extends State<_SubjectAttendanceCard> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     final m = widget.model;
     final pct = m.percentage;
-    final color = pct >= 75 ? AppColors.success : pct >= 65 ? AppColors.warning : AppColors.error;
+    final color = pct >= 75
+        ? colors.success
+        : pct >= 65
+            ? colors.warning
+            : colors.error;
 
     return BrainUpCard(
       child: Column(
@@ -339,7 +373,8 @@ class _SubjectAttendanceCardState extends State<_SubjectAttendanceCard> {
           Row(
             children: [
               Expanded(
-                child: Text(m.subjectName, style: AppTextStyles.h5, overflow: TextOverflow.ellipsis),
+                child: Text(m.subjectName,
+                    style: context.text.h5, overflow: TextOverflow.ellipsis),
               ),
               CircularPercentIndicator(
                 radius: 28,
@@ -347,10 +382,13 @@ class _SubjectAttendanceCardState extends State<_SubjectAttendanceCard> {
                 percent: (pct / 100).clamp(0.0, 1.0),
                 center: Text(
                   '${pct.toStringAsFixed(0)}%',
-                  style: AppTextStyles.caption.copyWith(color: color, fontSize: 9, fontWeight: FontWeight.w700),
+                  style: context.text.caption.copyWith(
+                      color: color,
+                      fontSize: 9,
+                      fontWeight: FontWeight.w700),
                 ),
                 progressColor: color,
-                backgroundColor: AppColors.surfaceBorder,
+                backgroundColor: colors.surfaceBorder,
                 circularStrokeCap: CircularStrokeCap.round,
                 animation: true,
               ),
@@ -360,11 +398,14 @@ class _SubjectAttendanceCardState extends State<_SubjectAttendanceCard> {
           // Stats row
           Row(
             children: [
-              _StatBadge(label: 'Present', value: m.present, color: AppColors.success),
+              _StatBadge(label: 'Present', value: m.present, color: colors.success),
               const SizedBox(width: 8),
-              _StatBadge(label: 'Absent', value: m.absent, color: AppColors.error),
+              _StatBadge(label: 'Absent', value: m.absent, color: colors.error),
               const SizedBox(width: 8),
-              _StatBadge(label: 'Total', value: m.totalClasses, color: AppColors.textSecondary),
+              _StatBadge(
+                  label: 'Total',
+                  value: m.totalClasses,
+                  color: colors.textSecondary),
             ],
           ),
           const SizedBox(height: 8),
@@ -379,7 +420,7 @@ class _SubjectAttendanceCardState extends State<_SubjectAttendanceCard> {
               m.isSafe
                   ? 'Safe to miss ${m.safeToMiss} more class${m.safeToMiss == 1 ? '' : 'es'}'
                   : 'Must attend ${m.mustAttendToRecover} more class${m.mustAttendToRecover == 1 ? '' : 'es'} to reach 75%',
-              style: AppTextStyles.caption.copyWith(color: color),
+              style: context.text.caption.copyWith(color: color),
             ),
           ),
           const SizedBox(height: 12),
@@ -388,14 +429,19 @@ class _SubjectAttendanceCardState extends State<_SubjectAttendanceCard> {
             children: [
               Expanded(
                 child: _isSaving
-                    ? const Center(child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.accent)))
+                    ? Center(
+                        child: SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                                strokeWidth: 2, color: colors.accent)))
                     : Row(
                         children: [
                           Expanded(
                             child: _MarkButton(
                               label: 'Present',
                               icon: Icons.check_circle_rounded,
-                              color: AppColors.success,
+                              color: colors.success,
                               onTap: () => _mark('present'),
                             ),
                           ),
@@ -404,7 +450,7 @@ class _SubjectAttendanceCardState extends State<_SubjectAttendanceCard> {
                             child: _MarkButton(
                               label: 'Absent',
                               icon: Icons.cancel_rounded,
-                              color: AppColors.error,
+                              color: colors.error,
                               onTap: () => _mark('absent'),
                             ),
                           ),
@@ -414,7 +460,8 @@ class _SubjectAttendanceCardState extends State<_SubjectAttendanceCard> {
               const SizedBox(width: 8),
               IconButton(
                 onPressed: widget.onDelete,
-                icon: const Icon(Icons.delete_outline, size: 18, color: AppColors.textMuted),
+                icon: Icon(Icons.delete_outline,
+                    size: 18, color: colors.textMuted),
                 padding: EdgeInsets.zero,
                 constraints: const BoxConstraints(),
               ),
@@ -449,7 +496,7 @@ class _MarkButton extends StatelessWidget {
           children: [
             Icon(icon, size: 14, color: color),
             const SizedBox(width: 4),
-            Text(label, style: AppTextStyles.labelSmall.copyWith(color: color)),
+            Text(label, style: context.text.labelSmall.copyWith(color: color)),
           ],
         ),
       ),
@@ -473,8 +520,8 @@ class _StatBadge extends StatelessWidget {
       ),
       child: Column(
         children: [
-          Text('$value', style: AppTextStyles.label.copyWith(color: color)),
-          Text(label, style: AppTextStyles.caption.copyWith(fontSize: 10)),
+          Text('$value', style: context.text.label.copyWith(color: color)),
+          Text(label, style: context.text.caption.copyWith(fontSize: 10)),
         ],
       ),
     );

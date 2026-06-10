@@ -7,17 +7,24 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
 
-import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_palette.dart';
 import '../../../core/theme/app_spacing.dart';
-import '../../../core/theme/app_text_styles.dart';
 import '../../../core/widgets/brainup_button.dart';
+import '../../../core/widgets/brainup_preparing_document_loader.dart';
 import '../../../core/widgets/brainup_text_field.dart';
+import '../../ai_tools/utils/summarizer_navigation.dart';
 import '../services/scanner_service.dart';
 import '../viewmodels/document_viewmodel.dart';
 
 class ScannerEditorScreen extends StatefulWidget {
   final List<File>? initialPages;
-  const ScannerEditorScreen({super.key, this.initialPages});
+  final bool processOnLoad;
+
+  const ScannerEditorScreen({
+    super.key,
+    this.initialPages,
+    this.processOnLoad = false,
+  });
 
   @override
   State<ScannerEditorScreen> createState() => _ScannerEditorScreenState();
@@ -25,17 +32,36 @@ class ScannerEditorScreen extends StatefulWidget {
 
 class _ScannerEditorScreenState extends State<ScannerEditorScreen> {
   bool _isCropping = false;
-  bool _didSeedFromRoute = false;
+  bool _didInitFromRoute = false;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (_didSeedFromRoute) return;
-    _didSeedFromRoute = true;
+    if (_didInitFromRoute) return;
+    _didInitFromRoute = true;
+
     final initial = widget.initialPages;
-    if (initial != null && initial.isNotEmpty) {
-      // Seed synchronously so the first build already has pages
-      context.read<DocumentViewModel>().seedScanPages(initial);
+    if (initial == null || initial.isEmpty) return;
+
+    if (widget.processOnLoad) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _processInitialPages());
+    } else {
+      context.read<DocumentViewModel>().seedScanPages(initial, notify: false);
+    }
+  }
+
+  Future<void> _processInitialPages() async {
+    final initial = widget.initialPages;
+    if (initial == null || initial.isEmpty || !mounted) return;
+    final vm = context.read<DocumentViewModel>();
+    if (vm.processedPages.isNotEmpty) return;
+    try {
+      await vm.processInitialPages(initial);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Could not prepare document: $e')),
+      );
     }
   }
 
@@ -46,22 +72,6 @@ class _ScannerEditorScreenState extends State<ScannerEditorScreen> {
     return const [];
   }
 
-  bool _isDark(BuildContext c) => Theme.of(c).brightness == Brightness.dark;
-  Color _surface(BuildContext c) =>
-      _isDark(c) ? AppColors.surface : AppColors.lightSurface;
-  Color _surfaceCard(BuildContext c) =>
-      _isDark(c) ? AppColors.surfaceCard : AppColors.lightSurfaceCard;
-  Color _surfaceBorder(BuildContext c) =>
-      _isDark(c) ? AppColors.surfaceBorder : AppColors.lightSurfaceBorder;
-  Color _accent(BuildContext c) =>
-      _isDark(c) ? AppColors.accent : AppColors.lightAccent;
-  Color _textSecondary(BuildContext c) =>
-      _isDark(c) ? AppColors.textSecondary : AppColors.lightTextSecondary;
-  Color _textPrimary(BuildContext c) =>
-      _isDark(c) ? AppColors.textPrimary : AppColors.lightTextPrimary;
-  Color _error(BuildContext c) =>
-      _isDark(c) ? AppColors.error : AppColors.lightError;
-
   @override
   Widget build(BuildContext context) {
     final vm = context.watch<DocumentViewModel>();
@@ -69,96 +79,93 @@ class _ScannerEditorScreenState extends State<ScannerEditorScreen> {
     final index = pages.isEmpty
         ? 0
         : vm.previewIndex.clamp(0, pages.length - 1);
+    final colors = context.colors;
 
-    if (vm.isScanProcessing && pages.isEmpty) {
+    final isPreparing = vm.isScanProcessing ||
+        (widget.processOnLoad &&
+            pages.isEmpty &&
+            (widget.initialPages?.isNotEmpty ?? false));
+
+    if (isPreparing) {
       return Scaffold(
-        backgroundColor: _surface(context),
-        body: Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              CircularProgressIndicator(color: _accent(context)),
-              const SizedBox(height: 16),
-              Text(
-                'Processing scan…',
-                style: AppTextStyles.body.copyWith(color: _textSecondary(context)),
-              ),
-            ],
+        backgroundColor: colors.surface,
+        body: const SafeArea(
+          child: Center(
+            child: BrainUpPreparingDocumentLoader(),
           ),
         ),
       );
     }
 
     return Scaffold(
-      backgroundColor: _surface(context),
+      backgroundColor: colors.surface,
       body: SafeArea(
-        child: pages.isEmpty && !vm.isScanProcessing
+        child: pages.isEmpty
             ? _buildEmpty(context)
-            : pages.isEmpty && vm.isScanProcessing
-                ? const SizedBox.shrink()
-                : Column(
-                children: [
-                  _TopBar(
-                    onBack: () => context.pop(),
-                    onAddPage: () => _addPage(context),
-                    onDone: () => _showSaveDialog(context),
-                    textSecondary: _textSecondary(context),
-                    textPrimary: _textPrimary(context),
-                    accent: _accent(context),
+            : Column(
+                    children: [
+                      _TopBar(
+                        onBack: () => context.pop(),
+                        onAddPage: () => _addPage(context),
+                        onDone: () => _showSaveDialog(context),
+                        textSecondary: colors.textSecondary,
+                        textPrimary: colors.textPrimary,
+                        accent: colors.accent,
+                      ),
+                      Expanded(
+                        child: _PagePreview(
+                          page: pages[index],
+                          currentIndex: index,
+                          totalPages: pages.length,
+                          isProcessing: vm.isScanProcessing || _isCropping,
+                          progress: vm.scanProgress,
+                          surfaceCard: colors.surfaceCard,
+                          surfaceBorder: colors.surfaceBorder,
+                          accent: colors.accent,
+                          textPrimary: colors.textPrimary,
+                        ),
+                      ),
+                      _FilterBar(
+                        page: pages[index],
+                        selectedFilter: vm.selectedFilter,
+                        onSelect: (f) async {
+                          await vm.applyFilterToPage(index, f);
+                        },
+                        surfaceCard: colors.surfaceCard,
+                        surfaceBorder: colors.surfaceBorder,
+                        accent: colors.accent,
+                        textSecondary: colors.textSecondary,
+                        textPrimary: colors.textPrimary,
+                      ),
+                      _PageStrip(
+                        pages: pages,
+                        currentIndex: index,
+                        onSelect: vm.setPreviewIndex,
+                        onReorder: vm.reorderPage,
+                        accent: colors.accent,
+                        surfaceBorder: colors.surfaceBorder,
+                      ),
+                      _ActionBar(
+                        onRotateLeft: () => vm.rotatePage(index, -90),
+                        onRotateRight: () => vm.rotatePage(index, 90),
+                        onCrop: () => _cropCurrentPage(context, index),
+                        onDelete: () => _confirmDelete(context, index),
+                        onOcr: () => _runOcrAndShow(context),
+                        isOcrRunning: vm.isOcrRunning,
+                        textSecondary: colors.textSecondary,
+                        accent: colors.accent,
+                        error: colors.error,
+                        surfaceCard: colors.surfaceCard,
+                        surfaceBorder: colors.surfaceBorder,
+                      ),
+                    ],
                   ),
-                  Expanded(
-                    child: _PagePreview(
-                      page: pages[index],
-                      currentIndex: index,
-                      totalPages: pages.length,
-                      isProcessing: vm.isScanProcessing || _isCropping,
-                      progress: vm.scanProgress,
-                      surfaceCard: _surfaceCard(context),
-                      surfaceBorder: _surfaceBorder(context),
-                      accent: _accent(context),
-                      textPrimary: _textPrimary(context),
-                    ),
-                  ),
-                  _FilterBar(
-                    page: pages[index],
-                    selectedFilter: vm.selectedFilter,
-                    onSelect: (f) async {
-                      await vm.applyFilterToPage(index, f);
-                    },
-                    surfaceCard: _surfaceCard(context),
-                    surfaceBorder: _surfaceBorder(context),
-                    accent: _accent(context),
-                    textSecondary: _textSecondary(context),
-                    textPrimary: _textPrimary(context),
-                  ),
-                  _PageStrip(
-                    pages: pages,
-                    currentIndex: index,
-                    onSelect: vm.setPreviewIndex,
-                    onReorder: vm.reorderPage,
-                    accent: _accent(context),
-                    surfaceBorder: _surfaceBorder(context),
-                  ),
-                  _ActionBar(
-                    onRotateLeft: () => vm.rotatePage(index, -90),
-                    onRotateRight: () => vm.rotatePage(index, 90),
-                    onCrop: () => _cropCurrentPage(context, index),
-                    onDelete: () => _confirmDelete(context, index),
-                    onOcr: () => _runOcrAndShow(context),
-                    isOcrRunning: vm.isOcrRunning,
-                    textSecondary: _textSecondary(context),
-                    accent: _accent(context),
-                    error: _error(context),
-                    surfaceCard: _surfaceCard(context),
-                    surfaceBorder: _surfaceBorder(context),
-                  ),
-                ],
-              ),
       ),
     );
   }
 
   Widget _buildEmpty(BuildContext context) {
+    final colors = context.colors;
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(AppSpacing.xxl),
@@ -168,19 +175,19 @@ class _ScannerEditorScreenState extends State<ScannerEditorScreen> {
             Icon(
               Icons.document_scanner_outlined,
               size: 64,
-              color: _textSecondary(context),
+              color: colors.textSecondary,
             ),
             const SizedBox(height: AppSpacing.lg),
             Text(
               'No pages to edit',
-              style: AppTextStyles.h4.copyWith(color: _textPrimary(context)),
+              style: context.text.h4.copyWith(color: colors.textPrimary),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: AppSpacing.sm),
             Text(
               'Capture or import pages first to start editing.',
-              style: AppTextStyles.bodySmall
-                  .copyWith(color: _textSecondary(context)),
+              style: context.text.bodySmall
+                  .copyWith(color: colors.textSecondary),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: AppSpacing.xl),
@@ -224,34 +231,37 @@ class _ScannerEditorScreenState extends State<ScannerEditorScreen> {
     final vm = context.read<DocumentViewModel>();
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: _surfaceCard(context),
-        title: Text(
-          'Delete page?',
-          style: AppTextStyles.h4.copyWith(color: _textPrimary(context)),
-        ),
-        content: Text(
-          'Page ${index + 1} will be removed from this scan.',
-          style: AppTextStyles.body.copyWith(color: _textSecondary(context)),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: Text(
-              'Cancel',
-              style: AppTextStyles.body
-                  .copyWith(color: _textSecondary(context)),
-            ),
+      builder: (ctx) {
+        final colors = ctx.colors;
+        return AlertDialog(
+          backgroundColor: colors.surfaceCard,
+          title: Text(
+            'Delete page?',
+            style: ctx.text.h4.copyWith(color: colors.textPrimary),
           ),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: Text(
-              'Delete',
-              style: AppTextStyles.body.copyWith(color: _error(context)),
-            ),
+          content: Text(
+            'Page ${index + 1} will be removed from this scan.',
+            style: ctx.text.body.copyWith(color: colors.textSecondary),
           ),
-        ],
-      ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: Text(
+                'Cancel',
+                style:
+                    ctx.text.body.copyWith(color: colors.textSecondary),
+              ),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: Text(
+                'Delete',
+                style: ctx.text.body.copyWith(color: colors.error),
+              ),
+            ),
+          ],
+        );
+      },
     );
     if (confirmed == true) {
       vm.deletePage(index);
@@ -269,16 +279,17 @@ class _ScannerEditorScreenState extends State<ScannerEditorScreen> {
   }
 
   Future<void> _showOcrBottomSheet(BuildContext context) async {
+    final colors = context.colors;
     await showModalBottomSheet<void>(
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
       builder: (_) => _OcrBottomSheet(
-        surfaceCard: _surfaceCard(context),
-        surfaceBorder: _surfaceBorder(context),
-        textPrimary: _textPrimary(context),
-        textSecondary: _textSecondary(context),
-        accent: _accent(context),
+        surfaceCard: colors.surfaceCard,
+        surfaceBorder: colors.surfaceBorder,
+        textPrimary: colors.textPrimary,
+        textSecondary: colors.textSecondary,
+        accent: colors.accent,
       ),
     );
   }
@@ -307,13 +318,14 @@ class _ScannerEditorScreenState extends State<ScannerEditorScreen> {
         return StatefulBuilder(
           builder: (ctx, setSheetState) {
             final pageSize = vm.selectedPageSize;
+            final colors = ctx.colors;
             return Padding(
               padding: EdgeInsets.only(
                 bottom: MediaQuery.of(ctx).viewInsets.bottom,
               ),
               child: Container(
                 decoration: BoxDecoration(
-                  color: _surfaceCard(context),
+                  color: colors.surfaceCard,
                   borderRadius: const BorderRadius.vertical(
                     top: Radius.circular(AppSpacing.radiusXl),
                   ),
@@ -324,111 +336,113 @@ class _ScannerEditorScreenState extends State<ScannerEditorScreen> {
                   AppSpacing.xl,
                   AppSpacing.xxl,
                 ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Center(
-                      child: Container(
-                        width: 36,
-                        height: 4,
-                        decoration: BoxDecoration(
-                          color: _surfaceBorder(context),
-                          borderRadius: BorderRadius.circular(2),
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Center(
+                        child: Container(
+                          width: 36,
+                          height: 4,
+                          decoration: BoxDecoration(
+                            color: colors.surfaceBorder,
+                            borderRadius: BorderRadius.circular(2),
+                          ),
                         ),
                       ),
-                    ),
-                    const SizedBox(height: AppSpacing.lg),
-                    Text(
-                      'Save Document',
-                      style: AppTextStyles.h4
-                          .copyWith(color: _textPrimary(context)),
-                    ),
-                    const SizedBox(height: AppSpacing.lg),
-                    BrainUpTextField(
-                      label: 'Title',
-                      controller: titleCtrl,
-                      hint: defaultTitle,
-                    ),
-                    const SizedBox(height: AppSpacing.md),
-                    _buildDropdownField<String>(
-                      context: context,
-                      label: 'Folder',
-                      value: selectedFolder,
-                      items: folders,
-                      itemLabel: (s) => s,
-                      onChanged: (v) {
-                        if (v != null) {
-                          setSheetState(() => selectedFolder = v);
-                        }
-                      },
-                    ),
-                    const SizedBox(height: AppSpacing.md),
-                    _buildDropdownField<String?>(
-                      context: context,
-                      label: 'Subject (optional)',
-                      value: selectedSubject,
-                      items: <String?>[null, ...subjects],
-                      itemLabel: (s) => s ?? 'None',
-                      onChanged: (v) {
-                        setSheetState(() => selectedSubject = v);
-                      },
-                    ),
-                    const SizedBox(height: AppSpacing.lg),
-                    Text(
-                      'Page Size',
-                      style: AppTextStyles.label
-                          .copyWith(color: _textSecondary(context)),
-                    ),
-                    const SizedBox(height: AppSpacing.sm),
-                    Row(
-                      children: [
-                        for (final size in PdfPageSize.values)
-                          Padding(
-                            padding:
-                                const EdgeInsets.only(right: AppSpacing.sm),
-                            child: _PageSizeChip(
-                              label: _pageSizeLabel(size),
-                              selected: pageSize == size,
-                              onTap: () {
-                                vm.setPageSize(size);
-                                setSheetState(() {});
-                              },
-                              accent: _accent(context),
-                              surfaceCard: _surfaceCard(context),
-                              surfaceBorder: _surfaceBorder(context),
-                              textPrimary: _textPrimary(context),
-                              textSecondary: _textSecondary(context),
+                      const SizedBox(height: AppSpacing.lg),
+                      Text(
+                        'Save Document',
+                        style: ctx.text.h4
+                            .copyWith(color: colors.textPrimary),
+                      ),
+                      const SizedBox(height: AppSpacing.lg),
+                      BrainUpTextField(
+                        label: 'Title',
+                        controller: titleCtrl,
+                        hint: defaultTitle,
+                      ),
+                      const SizedBox(height: AppSpacing.md),
+                      _buildDropdownField<String>(
+                        context: ctx,
+                        label: 'Folder',
+                        value: selectedFolder,
+                        items: folders,
+                        itemLabel: (s) => s,
+                        onChanged: (v) {
+                          if (v != null) {
+                            setSheetState(() => selectedFolder = v);
+                          }
+                        },
+                      ),
+                      const SizedBox(height: AppSpacing.md),
+                      _buildDropdownField<String?>(
+                        context: ctx,
+                        label: 'Subject (optional)',
+                        value: selectedSubject,
+                        items: <String?>[null, ...subjects],
+                        itemLabel: (s) => s ?? 'None',
+                        onChanged: (v) {
+                          setSheetState(() => selectedSubject = v);
+                        },
+                      ),
+                      const SizedBox(height: AppSpacing.lg),
+                      Text(
+                        'Page Size',
+                        style: ctx.text.label
+                            .copyWith(color: colors.textSecondary),
+                      ),
+                      const SizedBox(height: AppSpacing.sm),
+                      Row(
+                        children: [
+                          for (final size in PdfPageSize.values)
+                            Padding(
+                              padding: const EdgeInsets.only(
+                                  right: AppSpacing.sm),
+                              child: _PageSizeChip(
+                                label: _pageSizeLabel(size),
+                                selected: pageSize == size,
+                                onTap: () {
+                                  vm.setPageSize(size);
+                                  setSheetState(() {});
+                                },
+                                accent: colors.accent,
+                                surfaceCard: colors.surfaceCard,
+                                surfaceBorder: colors.surfaceBorder,
+                                textPrimary: colors.textPrimary,
+                                textSecondary: colors.textSecondary,
+                              ),
                             ),
-                          ),
-                      ],
-                    ),
-                    const SizedBox(height: AppSpacing.xl),
-                    BrainUpButton(
-                      label: 'Save as PDF',
-                      isLoading: vm.isScanProcessing,
-                      onTap: () async {
-                        final title = titleCtrl.text.trim().isEmpty
-                            ? defaultTitle
-                            : titleCtrl.text.trim();
-                        Navigator.pop(sheetCtx);
-                        await vm.finalizeScan(
-                          title: title,
-                          folder: selectedFolder,
-                          subjectTag: selectedSubject,
-                          context: context,
-                        );
-                      },
-                    ),
-                    const SizedBox(height: 12),
-                    BrainUpButton.secondary(
-                      label: 'Save as Images',
-                      onTap: () async {
-                        Navigator.pop(sheetCtx);
-                        await _shareAsImages(context);
-                      },
-                    ),
-                  ],
+                        ],
+                      ),
+                      const SizedBox(height: AppSpacing.xl),
+                      BrainUpButton(
+                        label: 'Save as PDF',
+                        isLoading: vm.isScanProcessing,
+                        onTap: () async {
+                          final title = titleCtrl.text.trim().isEmpty
+                              ? defaultTitle
+                              : titleCtrl.text.trim();
+                          Navigator.pop(sheetCtx);
+                          await vm.finalizeScan(
+                            title: title,
+                            folder: selectedFolder,
+                            subjectTag: selectedSubject,
+                            context: context,
+                          );
+                        },
+                      ),
+                      const SizedBox(height: 12),
+                      BrainUpButton.secondary(
+                        label: 'Save as Images',
+                        onTap: () async {
+                          Navigator.pop(sheetCtx);
+                          await _shareAsImages(context);
+                        },
+                      ),
+                    ],
+                  ),
                 ),
               ),
             );
@@ -473,33 +487,34 @@ class _ScannerEditorScreenState extends State<ScannerEditorScreen> {
     required String Function(T) itemLabel,
     required ValueChanged<T?> onChanged,
   }) {
+    final colors = context.colors;
     return DropdownButtonFormField<T>(
       value: value,
       isExpanded: true,
-      dropdownColor: _surfaceCard(context),
-      style: AppTextStyles.body.copyWith(color: _textPrimary(context)),
-      iconEnabledColor: _textSecondary(context),
+      dropdownColor: colors.surfaceCard,
+      style: context.text.body.copyWith(color: colors.textPrimary),
+      iconEnabledColor: colors.textSecondary,
       decoration: InputDecoration(
         labelText: label,
         labelStyle:
-            AppTextStyles.label.copyWith(color: _textSecondary(context)),
+            context.text.label.copyWith(color: colors.textSecondary),
         filled: true,
-        fillColor: _surfaceCard(context),
+        fillColor: colors.surfaceCard,
         contentPadding: const EdgeInsets.symmetric(
           horizontal: AppSpacing.lg,
           vertical: AppSpacing.md,
         ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-          borderSide: BorderSide(color: _surfaceBorder(context)),
+          borderSide: BorderSide(color: colors.surfaceBorder),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-          borderSide: BorderSide(color: _surfaceBorder(context)),
+          borderSide: BorderSide(color: colors.surfaceBorder),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-          borderSide: BorderSide(color: _accent(context), width: 1.5),
+          borderSide: BorderSide(color: colors.accent, width: 1.5),
         ),
       ),
       items: items
@@ -557,7 +572,7 @@ class _TopBar extends StatelessWidget {
           Expanded(
             child: Text(
               'Edit Scan',
-              style: AppTextStyles.h4.copyWith(color: textPrimary),
+              style: context.text.h4.copyWith(color: textPrimary),
             ),
           ),
           IconButton(
@@ -644,7 +659,7 @@ class _PagePreview extends StatelessWidget {
               ),
               child: Text(
                 '${currentIndex + 1} / $totalPages',
-                style: AppTextStyles.labelSmall.copyWith(color: textPrimary),
+                style: context.text.labelSmall.copyWith(color: textPrimary),
               ),
             ),
           ),
@@ -743,7 +758,7 @@ class _FilterBar extends StatelessWidget {
                   const SizedBox(height: 6),
                   Text(
                     opt.label,
-                    style: AppTextStyles.caption.copyWith(
+                    style: context.text.caption.copyWith(
                       color: isSelected ? accent : textSecondary,
                       fontWeight:
                           isSelected ? FontWeight.w600 : FontWeight.w400,
@@ -980,7 +995,7 @@ class _ActionIcon extends StatelessWidget {
             const SizedBox(height: 4),
             Text(
               label,
-              style: AppTextStyles.caption.copyWith(color: color),
+              style: context.text.caption.copyWith(color: color),
             ),
           ],
         ),
@@ -1031,7 +1046,7 @@ class _PageSizeChip extends StatelessWidget {
         ),
         child: Text(
           label,
-          style: AppTextStyles.body.copyWith(
+          style: context.text.body.copyWith(
             color: selected ? accent : textSecondary,
             fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
           ),
@@ -1101,7 +1116,7 @@ class _OcrBottomSheet extends StatelessWidget {
                   Expanded(
                     child: Text(
                       'Extracted Text',
-                      style: AppTextStyles.h4.copyWith(color: textPrimary),
+                      style: context.text.h4.copyWith(color: textPrimary),
                     ),
                   ),
                   IconButton(
@@ -1137,7 +1152,7 @@ class _OcrBottomSheet extends StatelessWidget {
                         ? Center(
                             child: Text(
                               'No text was detected on these pages.',
-                              style: AppTextStyles.body
+                              style: context.text.body
                                   .copyWith(color: textSecondary),
                               textAlign: TextAlign.center,
                             ),
@@ -1146,7 +1161,7 @@ class _OcrBottomSheet extends StatelessWidget {
                             controller: scrollController,
                             child: SelectableText(
                               text,
-                              style: AppTextStyles.body
+                              style: context.text.body
                                   .copyWith(color: textPrimary, height: 1.5),
                             ),
                           ),
@@ -1158,7 +1173,7 @@ class _OcrBottomSheet extends StatelessWidget {
                     ? null
                     : () {
                         Navigator.pop(context);
-                        context.push('/ai/summarizer', extra: text);
+                        openSummarizerWithText(context, text);
                       },
               ),
             ],

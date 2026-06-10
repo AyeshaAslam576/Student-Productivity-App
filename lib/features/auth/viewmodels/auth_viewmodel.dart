@@ -22,6 +22,12 @@ class AuthViewModel extends ChangeNotifier {
   bool get isLoading => _state == AuthState.loading;
   bool get isAuthenticated => _state == AuthState.authenticated;
 
+  bool get isEmailPasswordUser {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return false;
+    return user.providerData.any((p) => p.providerId == 'password');
+  }
+
   // ─── Auth State Listener ──────────────────────────────────────────────────
 
   Future<void> _onAuthChange(User? firebaseUser) async {
@@ -153,6 +159,12 @@ class AuthViewModel extends ChangeNotifier {
   }
 
   // ─── Helpers ──────────────────────────────────────────────────────────────
+
+  /// Updates in-memory [user] immediately (e.g. after profile save).
+  void setUser(UserModel user) {
+    _user = user;
+    notifyListeners();
+  }
 
   /// Re-fetches the user document from Firestore and updates [user].
   /// Call this after updating profile data (e.g. photoBase64).

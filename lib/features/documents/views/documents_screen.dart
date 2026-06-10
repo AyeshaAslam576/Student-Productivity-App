@@ -4,10 +4,12 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
+import '../../../core/navigation/back_navigation.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_palette.dart';
 import '../../../core/theme/app_spacing.dart';
-import '../../../core/theme/app_text_styles.dart';
 import '../../../core/widgets/brainup_button.dart';
+import '../../../core/widgets/brainup_preparing_document_loader.dart';
 import '../../../core/widgets/brainup_text_field.dart';
 import '../models/document_model.dart';
 import '../viewmodels/document_viewmodel.dart';
@@ -70,9 +72,10 @@ class _DocumentsScreenState extends State<DocumentsScreen> {
   Widget build(BuildContext context) {
     final vm = context.watch<DocumentViewModel>();
     final filtered = _categoryFiltered(vm);
+    final colors = context.colors;
 
     return Scaffold(
-      backgroundColor: AppColors.surface,
+      backgroundColor: colors.surface,
       floatingActionButton: vm.isScanProcessing
           ? null
           : _ScanFAB(
@@ -110,10 +113,20 @@ class _DocumentsScreenState extends State<DocumentsScreen> {
             ),
           ),
           if (filtered.isEmpty)
-            SliverFillRemaining(
-              hasScrollBody: false,
-              child: _buildEmptyState(context, vm,
-                  hasAnyDocs: vm.allDocuments.isNotEmpty),
+            SliverToBoxAdapter(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  minHeight: (MediaQuery.sizeOf(context).height * 0.38)
+                      .clamp(240.0, 520.0),
+                ),
+                child: Center(
+                  child: _buildEmptyState(
+                    context,
+                    vm,
+                    hasAnyDocs: vm.allDocuments.isNotEmpty,
+                  ),
+                ),
+              ),
             )
           else if (_isGrid)
             SliverPadding(
@@ -165,28 +178,21 @@ class _DocumentsScreenState extends State<DocumentsScreen> {
             ),
         ],
           ),
-          if (vm.isScanProcessing && vm.scanProgress > 0)
+          if (vm.isScanProcessing)
             Container(
               color: Colors.black54,
               alignment: Alignment.center,
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const CircularProgressIndicator(color: AppColors.accent),
-                  const SizedBox(height: 16),
-                  Text(
-                    'Preparing your scan…',
-                    style: AppTextStyles.body.copyWith(
-                      color: AppColors.textPrimary,
-                    ),
-                  ),
+                  const BrainUpPreparingDocumentLoader(),
                   if (vm.scanProgress > 0)
                     Padding(
                       padding: const EdgeInsets.only(top: 8),
                       child: Text(
                         '${(vm.scanProgress * 100).round()}%',
-                        style: AppTextStyles.caption.copyWith(
-                          color: AppColors.textSecondary,
+                        style: context.text.caption.copyWith(
+                          color: colors.textSecondary,
                         ),
                       ),
                     ),
@@ -201,18 +207,21 @@ class _DocumentsScreenState extends State<DocumentsScreen> {
   // ─── SLIVER APP BAR ────────────────────────────────────────────────────────
 
   Widget _buildSliverAppBar(DocumentViewModel vm) {
+    final colors = context.colors;
     return SliverAppBar(
       pinned: true,
       expandedHeight: 140,
       elevation: 0,
-      backgroundColor: AppColors.primary,
-      iconTheme: const IconThemeData(color: AppColors.textPrimary),
+      backgroundColor: colors.primary,
+      automaticallyImplyLeading: false,
+      leading: brainUpBackButton(context, iconColor: colors.textPrimary),
+      iconTheme: IconThemeData(color: colors.textPrimary),
       title: Text(
         'Documents',
-        style: AppTextStyles.h3.copyWith(color: AppColors.textPrimary),
+        style: context.text.h3.copyWith(color: colors.textPrimary),
       ),
-      flexibleSpace: const DecoratedBox(
-        decoration: BoxDecoration(gradient: AppColors.primaryGradient),
+      flexibleSpace: DecoratedBox(
+        decoration: BoxDecoration(gradient: colors.primaryGradient),
       ),
       bottom: PreferredSize(
         preferredSize: const Size.fromHeight(54),
@@ -296,6 +305,7 @@ class _DocumentsScreenState extends State<DocumentsScreen> {
             null,
           ),
       };
+      final colors = context.colors;
       return Center(
         child: Padding(
           padding: const EdgeInsets.all(24),
@@ -306,26 +316,27 @@ class _DocumentsScreenState extends State<DocumentsScreen> {
                 width: 72,
                 height: 72,
                 decoration: BoxDecoration(
-                  color: AppColors.surfaceCard,
+                  color: colors.surfaceCard,
                   shape: BoxShape.circle,
-                  border: Border.all(color: AppColors.surfaceBorder),
+                  border: Border.all(color: colors.surfaceBorder),
                 ),
-                child: Icon(icon, size: 30, color: AppColors.textMuted),
+                child: Icon(icon, size: 30, color: colors.textMuted),
               ),
               const SizedBox(height: 16),
-              Text(title, style: AppTextStyles.h4),
+              Text(title, style: context.text.h4),
               const SizedBox(height: 8),
               Text(
                 sub,
-                style: AppTextStyles.bodySmall
-                    .copyWith(color: AppColors.textMuted),
+                style: context.text.bodySmall
+                    .copyWith(color: colors.textMuted),
                 textAlign: TextAlign.center,
               ),
               if (action != null && onAction != null) ...[
                 const SizedBox(height: 20),
-                SizedBox(
+                BrainUpButton(
+                  label: action,
                   width: 200,
-                  child: BrainUpButton(label: action, onTap: onAction),
+                  onTap: onAction,
                 ),
               ],
             ],
@@ -333,9 +344,10 @@ class _DocumentsScreenState extends State<DocumentsScreen> {
         ),
       );
     }
+    final colors = context.colors;
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.all(20),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -343,40 +355,36 @@ class _DocumentsScreenState extends State<DocumentsScreen> {
               width: 80,
               height: 80,
               decoration: BoxDecoration(
-                color: AppColors.accent.withOpacity(0.1),
+                color: colors.accent.withOpacity(0.1),
                 shape: BoxShape.circle,
-                border: Border.all(color: AppColors.accent.withOpacity(0.2)),
+                border: Border.all(color: colors.accent.withOpacity(0.2)),
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.document_scanner_rounded,
                 size: 36,
-                color: AppColors.accent,
-              ),
-            ),
-            const SizedBox(height: 16),
-            Text('Your documents live here', style: AppTextStyles.h4),
-            const SizedBox(height: 8),
-            Text(
-              'Scan notes, import PDFs or create\ndocuments — stored safely on device',
-              style: AppTextStyles.body
-                  .copyWith(color: AppColors.textSecondary),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 24),
-            SizedBox(
-              width: 220,
-              child: BrainUpButton(
-                label: 'Scan Now',
-                onTap: () => vm.startEdgeScan(context),
+                color: colors.accent,
               ),
             ),
             const SizedBox(height: 10),
-            SizedBox(
-              width: 220,
-              child: BrainUpButton.secondary(
-                label: 'Import PDF',
-                onTap: vm.importPdf,
-              ),
+            Text('Your documents live here', style: context.text.h4),
+            const SizedBox(height: 8),
+            Text(
+              'Scan notes, import PDFs or create\ndocuments — stored safely on device',
+              style: context.text.body
+                  .copyWith(color: colors.textSecondary),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 20),
+            BrainUpButton(
+              label: 'Scan Now',
+              width: 197,
+              onTap: () => vm.startEdgeScan(context),
+            ),
+            const SizedBox(height: 10),
+            BrainUpButton.secondary(
+              label: 'Import PDF',
+              width: 197,
+              onTap: vm.importPdf,
             ),
           ],
         ),
@@ -391,80 +399,84 @@ class _DocumentsScreenState extends State<DocumentsScreen> {
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
-      builder: (ctx) => Container(
-        padding: const EdgeInsets.fromLTRB(20, 14, 20, 36),
-        decoration: const BoxDecoration(
-          color: AppColors.surfaceCard,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            const _SheetHandle(),
-            const SizedBox(height: 16),
-            Text('Sort & Filter', style: AppTextStyles.h4),
-            const SizedBox(height: 16),
-            Text(
-              'Sort by',
-              style: AppTextStyles.bodySmall
-                  .copyWith(color: AppColors.textMuted),
-            ),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: SortOption.values.map((option) {
-                return ChoiceChip(
-                  label: Text(option.name),
-                  selected: vm.sortBy == option,
-                  selectedColor: AppColors.accent.withOpacity(0.2),
-                  backgroundColor: AppColors.surfaceElevated,
-                  labelStyle: AppTextStyles.bodySmall.copyWith(
-                    color: vm.sortBy == option
-                        ? AppColors.accent
-                        : AppColors.textPrimary,
-                    fontWeight: vm.sortBy == option
-                        ? FontWeight.w600
-                        : FontWeight.w500,
-                  ),
-                  side: BorderSide(
-                    color: vm.sortBy == option
-                        ? AppColors.accent
-                        : AppColors.surfaceBorder,
-                  ),
-                  onSelected: (_) {
-                    vm.setSortOption(option);
-                    Navigator.pop(ctx);
-                  },
-                );
-              }).toList(),
-            ),
-            const SizedBox(height: 20),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                TextButton(
-                  onPressed: () {
-                    vm.clearFilters();
-                    Navigator.pop(ctx);
-                  },
-                  child: Text(
-                    'Clear All',
-                    style: AppTextStyles.body.copyWith(
-                      color: AppColors.textSecondary,
+      builder: (ctx) {
+        final colors = ctx.colors;
+        return Container(
+          padding: const EdgeInsets.fromLTRB(20, 14, 20, 36),
+          decoration: BoxDecoration(
+            color: colors.surfaceCard,
+            borderRadius:
+                const BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const _SheetHandle(),
+              const SizedBox(height: 16),
+              Text('Sort & Filter', style: ctx.text.h4),
+              const SizedBox(height: 16),
+              Text(
+                'Sort by',
+                style: ctx.text.bodySmall
+                    .copyWith(color: colors.textMuted),
+              ),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: SortOption.values.map((option) {
+                  return ChoiceChip(
+                    label: Text(option.name),
+                    selected: vm.sortBy == option,
+                    selectedColor: colors.accent.withOpacity(0.2),
+                    backgroundColor: colors.surfaceElevated,
+                    labelStyle: ctx.text.bodySmall.copyWith(
+                      color: vm.sortBy == option
+                          ? colors.accent
+                          : colors.textPrimary,
+                      fontWeight: vm.sortBy == option
+                          ? FontWeight.w600
+                          : FontWeight.w500,
+                    ),
+                    side: BorderSide(
+                      color: vm.sortBy == option
+                          ? colors.accent
+                          : colors.surfaceBorder,
+                    ),
+                    onSelected: (_) {
+                      vm.setSortOption(option);
+                      Navigator.pop(ctx);
+                    },
+                  );
+                }).toList(),
+              ),
+              const SizedBox(height: 20),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  TextButton(
+                    onPressed: () {
+                      vm.clearFilters();
+                      Navigator.pop(ctx);
+                    },
+                    child: Text(
+                      'Clear All',
+                      style: ctx.text.body.copyWith(
+                        color: colors.textSecondary,
+                      ),
                     ),
                   ),
-                ),
-                BrainUpButton.small(
-                  label: 'Apply',
-                  onTap: () => Navigator.pop(ctx),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
+                  BrainUpButton.small(
+                    label: 'Apply',
+                    onTap: () => Navigator.pop(ctx),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -474,52 +486,56 @@ class _DocumentsScreenState extends State<DocumentsScreen> {
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
-      builder: (ctx) => Padding(
-        padding: EdgeInsets.only(
-          bottom: MediaQuery.of(ctx).viewInsets.bottom,
-        ),
-        child: Container(
-          padding: const EdgeInsets.fromLTRB(20, 14, 20, 28),
-          decoration: const BoxDecoration(
-            color: AppColors.surfaceCard,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      builder: (ctx) {
+        final colors = ctx.colors;
+        return Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(ctx).viewInsets.bottom,
           ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const _SheetHandle(),
-              const SizedBox(height: 16),
-              Text('New Folder', style: AppTextStyles.h4),
-              const SizedBox(height: 16),
-              BrainUpTextField(
-                label: 'Folder name',
-                hint: 'e.g. Maths Notes',
-                controller: ctrl,
-                autofocus: true,
-                prefixIcon: const Icon(
-                  Icons.folder_outlined,
-                  color: AppColors.textSecondary,
+          child: Container(
+            padding: const EdgeInsets.fromLTRB(20, 14, 20, 28),
+            decoration: BoxDecoration(
+              color: colors.surfaceCard,
+              borderRadius:
+                  const BorderRadius.vertical(top: Radius.circular(24)),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const _SheetHandle(),
+                const SizedBox(height: 16),
+                Text('New Folder', style: ctx.text.h4),
+                const SizedBox(height: 16),
+                BrainUpTextField(
+                  label: 'Folder name',
+                  hint: 'e.g. Maths Notes',
+                  controller: ctrl,
+                  autofocus: true,
+                  prefixIcon: Icon(
+                    Icons.folder_outlined,
+                    color: colors.textSecondary,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 20),
-              BrainUpButton(
-                label: 'Create',
-                onTap: () {
-                  final name = ctrl.text.trim();
-                  if (name.isEmpty) {
+                const SizedBox(height: 20),
+                BrainUpButton(
+                  label: 'Create',
+                  onTap: () {
+                    final name = ctrl.text.trim();
+                    if (name.isEmpty) {
+                      Navigator.pop(ctx);
+                      return;
+                    }
+                    setState(() => _pendingFolders.add(name));
+                    vm.setFolder(name);
                     Navigator.pop(ctx);
-                    return;
-                  }
-                  setState(() => _pendingFolders.add(name));
-                  vm.setFolder(name);
-                  Navigator.pop(ctx);
-                },
-              ),
-            ],
+                  },
+                ),
+              ],
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 }
@@ -534,13 +550,13 @@ class _ScanFAB extends StatelessWidget {
   Widget build(BuildContext context) {
     return FloatingActionButton.extended(
       onPressed: onPressed,
-      backgroundColor: AppColors.accent,
+      backgroundColor: context.colors.accent,
       foregroundColor: Colors.white,
       elevation: 4,
       icon: const Icon(Icons.document_scanner_rounded),
       label: Text(
         '',
-        style: AppTextStyles.button.copyWith(color: Colors.white),
+        style: context.text.button.copyWith(color: Colors.white),
       ),
     );
   }
@@ -561,17 +577,18 @@ class _StatChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
-        color: AppColors.surfaceCard.withOpacity(0.85),
+        color: colors.surfaceCard.withOpacity(0.85),
         borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-        border: Border.all(color: AppColors.surfaceBorder),
+        border: Border.all(color: colors.surfaceBorder),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 16, color: AppColors.accent),
+          Icon(icon, size: 16, color: colors.accent),
           const SizedBox(width: 6),
           Flexible(
             child: RichText(
@@ -580,15 +597,15 @@ class _StatChip extends StatelessWidget {
                 children: [
                   TextSpan(
                     text: '$value ',
-                    style: AppTextStyles.label.copyWith(
-                      color: AppColors.accent,
+                    style: context.text.label.copyWith(
+                      color: colors.accent,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
                   TextSpan(
                     text: label,
-                    style: AppTextStyles.label.copyWith(
-                      color: AppColors.textSecondary,
+                    style: context.text.label.copyWith(
+                      color: colors.textSecondary,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
@@ -610,29 +627,30 @@ class _QuickActionRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     final tiles = <_QuickAction>[
       _QuickAction(
         icon: Icons.document_scanner_rounded,
         label: 'Scan',
-        color: AppColors.accent,
+        color: colors.accent,
         onTap: () => vm.startEdgeScan(context),
       ),
       _QuickAction(
         icon: Icons.upload_file_rounded,
         label: 'Import',
-        color: AppColors.info,
+        color: colors.info,
         onTap: vm.importPdf,
       ),
       _QuickAction(
         icon: Icons.photo_library_rounded,
         label: 'Gallery',
-        color: AppColors.success,
+        color: colors.success,
         onTap: vm.importFromGallery,
       ),
       _QuickAction(
         icon: Icons.qr_code_scanner_rounded,
         label: 'QR',
-        color: AppColors.warning,
+        color: colors.warning,
         onTap: () => context.push('/documents/qr'),
       ),
     ];
@@ -670,15 +688,16 @@ class _QuickActionTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return GestureDetector(
       onTap: action.onTap,
       child: Container(
         height: 86,
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
         decoration: BoxDecoration(
-          color: AppColors.surfaceCard,
+          color: colors.surfaceCard,
           borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
-          border: Border.all(color: AppColors.surfaceBorder),
+          border: Border.all(color: colors.surfaceBorder),
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -697,8 +716,8 @@ class _QuickActionTile extends StatelessWidget {
               action.label,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: AppTextStyles.caption.copyWith(
-                color: AppColors.textPrimary,
+              style: context.text.caption.copyWith(
+                color: colors.textPrimary,
                 fontWeight: FontWeight.w600,
                 fontSize: 11,
               ),
@@ -727,6 +746,7 @@ class _FolderSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return SizedBox(
       height: 48,
       child: ListView.separated(
@@ -748,22 +768,21 @@ class _FolderSection extends StatelessWidget {
                   Icons.folder_rounded,
                   size: 14,
                   color: isSelected
-                      ? AppColors.accent
-                      : AppColors.textSecondary,
+                      ? colors.accent
+                      : colors.textSecondary,
                 ),
                 const SizedBox(width: 6),
                 Text(folder),
               ],
             ),
             selected: isSelected,
-            selectedColor: AppColors.accent.withOpacity(0.18),
-            backgroundColor: AppColors.surfaceCard,
+            selectedColor: colors.accent.withOpacity(0.18),
+            backgroundColor: colors.surfaceCard,
             side: BorderSide(
-              color: isSelected ? AppColors.accent : AppColors.surfaceBorder,
+              color: isSelected ? colors.accent : colors.surfaceBorder,
             ),
-            labelStyle: AppTextStyles.bodySmall.copyWith(
-              color:
-                  isSelected ? AppColors.accent : AppColors.textPrimary,
+            labelStyle: context.text.bodySmall.copyWith(
+              color: isSelected ? colors.accent : colors.textPrimary,
               fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
             ),
             showCheckmark: false,
@@ -781,22 +800,23 @@ class _CreateFolderChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return ActionChip(
       onPressed: onTap,
-      avatar: const Icon(
+      avatar: Icon(
         Icons.add_rounded,
         size: 16,
-        color: AppColors.accent,
+        color: colors.accent,
       ),
       label: Text(
         'New',
-        style: AppTextStyles.bodySmall.copyWith(
-          color: AppColors.accent,
+        style: context.text.bodySmall.copyWith(
+          color: colors.accent,
           fontWeight: FontWeight.w600,
         ),
       ),
-      backgroundColor: AppColors.surfaceCard,
-      side: const BorderSide(color: AppColors.accent),
+      backgroundColor: colors.surfaceCard,
+      side: BorderSide(color: colors.accent),
     );
   }
 }
@@ -820,6 +840,7 @@ class _SearchAndFilter extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
       child: Row(
@@ -830,17 +851,17 @@ class _SearchAndFilter extends StatelessWidget {
               hint: 'Search documents…',
               controller: controller,
               onChanged: onSearchChanged,
-              prefixIcon: const Icon(
+              prefixIcon: Icon(
                 Icons.search_rounded,
-                color: AppColors.textSecondary,
+                color: colors.textSecondary,
                 size: 20,
               ),
               suffixIcon: controller.text.isEmpty
                   ? null
                   : IconButton(
-                      icon: const Icon(
+                      icon: Icon(
                         Icons.clear_rounded,
-                        color: AppColors.textMuted,
+                        color: colors.textMuted,
                         size: 18,
                       ),
                       onPressed: () {
@@ -881,8 +902,9 @@ class _SquareIconButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     final btn = Material(
-      color: AppColors.surfaceCard,
+      color: colors.surfaceCard,
       borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
       child: InkWell(
         borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
@@ -893,9 +915,9 @@ class _SquareIconButton extends StatelessWidget {
           alignment: Alignment.center,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-            border: Border.all(color: AppColors.surfaceBorder),
+            border: Border.all(color: colors.surfaceBorder),
           ),
-          child: Icon(icon, color: AppColors.textSecondary, size: 20),
+          child: Icon(icon, color: colors.textSecondary, size: 20),
         ),
       ),
     );
@@ -933,6 +955,7 @@ class _FilterChipsRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return SizedBox(
       height: 50,
       child: ListView.separated(
@@ -950,16 +973,16 @@ class _FilterChipsRow extends StatelessWidget {
               padding:
                   const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
               decoration: BoxDecoration(
-                gradient: isSelected ? AppColors.accentGradient : null,
-                color: isSelected ? null : AppColors.surfaceCard,
+                gradient: isSelected ? colors.accentGradient : null,
+                color: isSelected ? null : colors.surfaceCard,
                 borderRadius: BorderRadius.circular(999),
                 border: isSelected
                     ? null
-                    : Border.all(color: AppColors.surfaceBorder),
+                    : Border.all(color: colors.surfaceBorder),
                 boxShadow: isSelected
                     ? [
                         BoxShadow(
-                          color: AppColors.accent.withOpacity(0.3),
+                          color: colors.accent.withOpacity(0.3),
                           blurRadius: 10,
                           offset: const Offset(0, 4),
                         ),
@@ -973,14 +996,14 @@ class _FilterChipsRow extends StatelessWidget {
                     _iconFor(f),
                     size: 14,
                     color:
-                        isSelected ? Colors.white : AppColors.textSecondary,
+                        isSelected ? Colors.white : colors.textSecondary,
                   ),
                   const SizedBox(width: 6),
                   Text(
                     f,
-                    style: AppTextStyles.caption.copyWith(
+                    style: context.text.caption.copyWith(
                       color:
-                          isSelected ? Colors.white : AppColors.textPrimary,
+                          isSelected ? Colors.white : colors.textPrimary,
                       fontWeight:
                           isSelected ? FontWeight.w600 : FontWeight.w500,
                     ),
@@ -1021,21 +1044,23 @@ class _DocumentGridCard extends StatelessWidget {
     }
   }
 
-  Color get _typeColor {
+  Color _typeColor(BuildContext context) {
+    final colors = context.colors;
     switch (doc.type) {
       case DocumentType.pdf:
-        return AppColors.error;
+        return colors.error;
       case DocumentType.image:
-        return AppColors.info;
+        return colors.info;
       case DocumentType.scanned:
-        return AppColors.accent;
+        return colors.accent;
       case DocumentType.generated:
-        return AppColors.success;
+        return colors.success;
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     final subjectColor =
         doc.subjectTag != null ? AppColors.subjectColor(doc.subjectTag!) : null;
 
@@ -1043,9 +1068,9 @@ class _DocumentGridCard extends StatelessWidget {
       onTap: onTap,
       child: Container(
         decoration: BoxDecoration(
-          color: AppColors.surfaceCard,
+          color: colors.surfaceCard,
           borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
-          border: Border.all(color: AppColors.surfaceBorder),
+          border: Border.all(color: colors.surfaceBorder),
         ),
         clipBehavior: Clip.antiAlias,
         child: Column(
@@ -1054,7 +1079,7 @@ class _DocumentGridCard extends StatelessWidget {
             Expanded(
               child: Stack(
                 children: [
-                  Positioned.fill(child: _buildPreview()),
+                  Positioned.fill(child: _buildPreview(context)),
                   Positioned(
                     top: 8,
                     right: 8,
@@ -1072,7 +1097,7 @@ class _DocumentGridCard extends StatelessWidget {
                               : Icons.star_outline_rounded,
                           size: 16,
                           color: doc.isFavorite
-                              ? AppColors.warning
+                              ? colors.warning
                               : Colors.white70,
                         ),
                       ),
@@ -1090,9 +1115,9 @@ class _DocumentGridCard extends StatelessWidget {
                     doc.title,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: AppTextStyles.h5.copyWith(
+                    style: context.text.h5.copyWith(
                       fontSize: 13,
-                      color: AppColors.textPrimary,
+                      color: colors.textPrimary,
                     ),
                   ),
                   const SizedBox(height: 3),
@@ -1100,8 +1125,8 @@ class _DocumentGridCard extends StatelessWidget {
                     '${doc.pageCountLabel} · ${doc.formattedSize}',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: AppTextStyles.caption.copyWith(
-                      color: AppColors.textMuted,
+                    style: context.text.caption.copyWith(
+                      color: colors.textMuted,
                       fontSize: 10,
                     ),
                   ),
@@ -1123,7 +1148,7 @@ class _DocumentGridCard extends StatelessWidget {
                         ),
                         child: Text(
                           doc.subjectTag!,
-                          style: AppTextStyles.caption.copyWith(
+                          style: context.text.caption.copyWith(
                             color: subjectColor,
                             fontWeight: FontWeight.w600,
                             fontSize: 10,
@@ -1141,7 +1166,7 @@ class _DocumentGridCard extends StatelessWidget {
     );
   }
 
-  Widget _buildPreview() {
+  Widget _buildPreview(BuildContext context) {
     final thumb = doc.thumbnailPath;
     if (thumb != null && thumb.isNotEmpty) {
       final file = File(thumb);
@@ -1149,27 +1174,29 @@ class _DocumentGridCard extends StatelessWidget {
         return Image.file(
           file,
           fit: BoxFit.cover,
-          errorBuilder: (_, __, ___) => _placeholder(),
+          errorBuilder: (_, __, ___) => _placeholder(context),
         );
       }
     }
-    return _placeholder();
+    return _placeholder(context);
   }
 
-  Widget _placeholder() {
+  Widget _placeholder(BuildContext context) {
+    final colors = context.colors;
+    final typeColor = _typeColor(context);
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            _typeColor.withOpacity(0.18),
-            AppColors.surfaceElevated,
+            typeColor.withOpacity(0.18),
+            colors.surfaceElevated,
           ],
         ),
       ),
       alignment: Alignment.center,
-      child: Icon(_typeIcon, size: 64, color: _typeColor.withOpacity(0.65)),
+      child: Icon(_typeIcon, size: 64, color: typeColor.withOpacity(0.65)),
     );
   }
 }
@@ -1186,7 +1213,7 @@ class _SheetHandle extends StatelessWidget {
         width: 36,
         height: 4,
         decoration: BoxDecoration(
-          color: AppColors.surfaceBorder,
+          color: context.colors.surfaceBorder,
           borderRadius: BorderRadius.circular(2),
         ),
       ),

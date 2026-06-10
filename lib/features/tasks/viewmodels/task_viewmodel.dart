@@ -150,11 +150,14 @@ class TaskViewModel extends ChangeNotifier {
         _isLoading = false;
         _error = null;
         notifyListeners();
+        unawaited(rescheduleAllPendingReminders());
       },
-      onError: (e) {
-        _error = _friendlyError(e);
-        _isLoading = false;
-        notifyListeners();
+      onError: (e) async {
+        await Future.delayed(const Duration(seconds: 2));
+        if (!_isLoading) {
+          _error = _friendlyError(e);
+          notifyListeners();
+        }
       },
     );
   }
@@ -181,17 +184,22 @@ class TaskViewModel extends ChangeNotifier {
     notifyListeners();
     try {
       await _repo.addTask(task);
-      if (task.hasReminder && task.reminderTime != null) {
+      _error = null;
+      if (task.hasReminder && task.dueDate.isAfter(DateTime.now())) {
+        await NotificationService.ensurePermissions();
         await NotificationService.scheduleTaskReminder(
           id: task.notificationId,
           taskTitle: task.title,
           subjectName: task.subject,
           dueDate: task.dueDate,
           priority: task.priority.name,
+          customReminderTime: task.reminderTime,
         );
       }
-      _isSaving = false;
-      notifyListeners();
+      Future.microtask(() {
+        _isSaving = false;
+        notifyListeners();
+      });
       return true;
     } catch (e) {
       _error = _friendlyError(e);
@@ -201,8 +209,31 @@ class TaskViewModel extends ChangeNotifier {
     }
   }
 
+  /// Re-schedules pending notifications for all tasks still in the future.
+  /// Safe to call repeatedly — scheduling the same id is idempotent.
+  Future<void> rescheduleAllPendingReminders() async {
+    final now = DateTime.now();
+    final pending = _tasks.where(
+      (t) => !t.isCompleted && t.hasReminder && t.dueDate.isAfter(now),
+    );
+    if (pending.isEmpty) return;
+    await NotificationService.ensurePermissions();
+    for (final task in pending) {
+      await NotificationService.cancelTaskReminders(task.notificationId);
+      await NotificationService.scheduleTaskReminder(
+        id: task.notificationId,
+        taskTitle: task.title,
+        subjectName: task.subject,
+        dueDate: task.dueDate,
+        priority: task.priority.name,
+        customReminderTime: task.reminderTime,
+      );
+    }
+  }
+
   Future<bool> completeTask(String taskId) async {
     try {
+      _error = null;
       await _repo.completeTask(taskId);
       final task = _tasks.firstWhere((t) => t.id == taskId,
           orElse: () => _tasks.first);
@@ -223,8 +254,66 @@ class TaskViewModel extends ChangeNotifier {
     }
   }
 
+  Future<bool> toggleTaskCompletion(String taskId) async {
+    final idx = _tasks.indexWhere((t) => t.id == taskId);
+    if (idx == -1) return false;
+    final task = _tasks[idx];
+    if (task.isCompleted) {
+      try {
+        _error = null;
+        await _repo.uncompleteTask(taskId);
+        _tasks[idx] = _tasks[idx].copyWith(
+          status: TaskStatus.pending,
+          completedAt: null,
+        );
+        notifyListeners();
+        return true;
+      } catch (e) {
+        _error = _friendlyError(e);
+        notifyListeners();
+        return false;
+      }
+    } else {
+      return completeTask(taskId);
+    }
+  }
+
+  Future<bool> updateTask(TaskModel task) async {
+    _isSaving = true;
+    _error = null;
+    notifyListeners();
+    try {
+      await _repo.updateTask(task);
+      await NotificationService.cancelTaskReminders(task.notificationId);
+      if (!task.isCompleted &&
+          task.hasReminder &&
+          task.dueDate.isAfter(DateTime.now())) {
+        await NotificationService.ensurePermissions();
+        await NotificationService.scheduleTaskReminder(
+          id: task.notificationId,
+          taskTitle: task.title,
+          subjectName: task.subject,
+          dueDate: task.dueDate,
+          priority: task.priority.name,
+          customReminderTime: task.reminderTime,
+        );
+      }
+      Future.microtask(() {
+        _isSaving = false;
+        notifyListeners();
+      });
+      return true;
+    } catch (e) {
+      _error = _friendlyError(e);
+      _isSaving = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
   Future<bool> deleteTask(String taskId) async {
     try {
+      _error = null;
       final task = _tasks.firstWhere((t) => t.id == taskId,
           orElse: () => _tasks.first);
       await NotificationService.cancelTaskReminders(task.notificationId);

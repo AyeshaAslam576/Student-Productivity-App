@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
-import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_text_styles.dart';
+import '../../../core/theme/app_palette.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/widgets/brainup_card.dart';
 
@@ -11,8 +10,9 @@ class AiToolsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return Scaffold(
-      backgroundColor: AppColors.surface,
+      backgroundColor: colors.surface,
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -22,8 +22,8 @@ class AiToolsScreen extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('AI Tools', style: AppTextStyles.h3),
-                  Text('Powered by Groq · llama3-70b', style: AppTextStyles.bodySmall),
+                  Text('AI Tools', style: context.text.h3),
+                  Text('Powered by Groq · llama3-70b', style: context.text.bodySmall),
                 ],
               ),
             ),
@@ -40,28 +40,28 @@ class AiToolsScreen extends StatelessWidget {
                       icon: Icons.summarize_rounded,
                       title: 'AI Summarizer',
                       description: 'Summarize any text or document instantly',
-                      color: AppColors.accent,
+                      color: colors.accent,
                       onTap: () => context.push('/ai/summarizer'),
                     ).animate(delay: 0.ms).fadeIn(duration: 300.ms).scale(begin: const Offset(0.9, 0.9), curve: Curves.easeOutBack),
                     _AiToolCard(
                       icon: Icons.spellcheck_rounded,
                       title: 'Grammar Check',
                       description: 'Fix grammar and improve your writing',
-                      color: AppColors.success,
+                      color: colors.success,
                       onTap: () => context.push('/ai/grammar'),
                     ).animate(delay: 60.ms).fadeIn(duration: 300.ms).scale(begin: const Offset(0.9, 0.9), curve: Curves.easeOutBack),
                     _AiToolCard(
                       icon: Icons.chat_bubble_outline_rounded,
                       title: 'AI Chatbot',
                       description: 'Ask anything academic',
-                      color: AppColors.info,
+                      color: colors.info,
                       onTap: () => context.push('/ai/chatbot'),
                     ).animate(delay: 120.ms).fadeIn(duration: 300.ms).scale(begin: const Offset(0.9, 0.9), curve: Curves.easeOutBack),
                     _AiToolCard(
                       icon: Icons.record_voice_over_rounded,
                       title: 'Text to Speech',
                       description: 'Listen to any text read aloud',
-                      color: AppColors.warning,
+                      color: colors.warning,
                       onTap: () => context.push('/ai/tts'),
                     ).animate(delay: 180.ms).fadeIn(duration: 300.ms).scale(begin: const Offset(0.9, 0.9), curve: Curves.easeOutBack),
                   ],
@@ -121,11 +121,11 @@ class _AiToolCard extends StatelessWidget {
                 child: Icon(icon, color: color, size: 28),
               ),
               const Spacer(),
-              Text(title, style: AppTextStyles.h5),
+              Text(title, style: context.text.h5),
               const SizedBox(height: 4),
               Text(
                 description,
-                style: AppTextStyles.caption.copyWith(height: 1.4),
+                style: context.text.caption.copyWith(height: 1.4),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
               ),

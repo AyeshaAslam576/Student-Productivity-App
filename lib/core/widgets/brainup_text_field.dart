@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
-import '../theme/app_colors.dart';
+import '../theme/app_palette.dart';
 import '../theme/app_spacing.dart';
-import '../theme/app_text_styles.dart';
 
 class BrainUpTextField extends StatelessWidget {
   final String label;
@@ -57,6 +56,8 @@ class BrainUpTextField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
+    final text = context.text;
     return TextFormField(
       controller: controller,
       validator: validator,
@@ -73,40 +74,40 @@ class BrainUpTextField extends StatelessWidget {
       autofocus: autofocus,
       initialValue: initialValue,
       maxLength: maxLength,
-      style: AppTextStyles.body.copyWith(color: AppColors.textPrimary),
-      cursorColor: AppColors.accent,
+      style: text.body.copyWith(color: colors.textPrimary),
+      cursorColor: colors.accent,
       decoration: InputDecoration(
         labelText: label,
         hintText: hint,
         filled: filled,
-        fillColor: fillColor ?? AppColors.surfaceElevated,
+        fillColor: fillColor ?? colors.surfaceElevated,
         prefixIcon: prefixIcon,
         suffixIcon: suffixIcon,
         contentPadding: contentPadding ??
             const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-          borderSide: const BorderSide(color: AppColors.surfaceBorder, width: 0.5),
+          borderSide: BorderSide(color: colors.surfaceBorder, width: 0.5),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-          borderSide: const BorderSide(color: AppColors.surfaceBorder, width: 0.5),
+          borderSide: BorderSide(color: colors.surfaceBorder, width: 0.5),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-          borderSide: const BorderSide(color: AppColors.accent, width: 1.5),
+          borderSide: BorderSide(color: colors.accent, width: 1.5),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-          borderSide: const BorderSide(color: AppColors.error, width: 1),
+          borderSide: BorderSide(color: colors.error, width: 1),
         ),
         focusedErrorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-          borderSide: const BorderSide(color: AppColors.error, width: 1.5),
+          borderSide: BorderSide(color: colors.error, width: 1.5),
         ),
-        labelStyle: AppTextStyles.body.copyWith(color: AppColors.textSecondary),
-        hintStyle: AppTextStyles.body.copyWith(color: AppColors.textMuted),
-        errorStyle: AppTextStyles.caption.copyWith(color: AppColors.error),
+        labelStyle: text.body.copyWith(color: colors.textSecondary),
+        hintStyle: text.body.copyWith(color: colors.textMuted),
+        errorStyle: text.caption.copyWith(color: colors.error),
         counterText: showCounter ? null : '',
       ),
     );

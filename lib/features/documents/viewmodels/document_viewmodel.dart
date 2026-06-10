@@ -19,12 +19,6 @@ import '../services/scanner_service.dart';
 
 enum SortOption { lastOpened, createdAt, name, size }
 
-class _FilterParams {
-  final String path;
-  final ScanFilter filter;
-  const _FilterParams({required this.path, required this.filter});
-}
-
 class DocumentViewModel extends ChangeNotifier {
   final DocumentRepository repository;
   final DocAiService aiService;
@@ -245,10 +239,10 @@ class DocumentViewModel extends ChangeNotifier {
 
     for (var i = start; i < total; i++) {
       final rawPage = _rawPages[i];
-      final processed = await compute(
-        _applyFilterIsolate,
-        _FilterParams(path: rawPage.path, filter: ScanFilter.auto),
-      );
+      // Apply on the main isolate — applyFilter uses path_provider, which fails
+      // inside compute() secondary isolates and blocked navigation to the editor.
+      final processed =
+          await ScannerService.applyFilter(rawPage, ScanFilter.auto);
       newlyProcessed.add(processed);
 
       if ((i - start + 1) % 3 == 0 || i == total - 1) {
@@ -264,9 +258,6 @@ class DocumentViewModel extends ChangeNotifier {
     }
     return List<File>.from(_processedPages);
   }
-
-  static Future<File> _applyFilterIsolate(_FilterParams params) =>
-      ScannerService.applyFilter(File(params.path), params.filter);
 
   /// Scan more pages while already on the editor (does not open a new route).
   Future<void> appendScannedPages(BuildContext context) async {
@@ -314,28 +305,40 @@ class DocumentViewModel extends ChangeNotifier {
   /// Seeds the scan session with externally captured pages (e.g. from the
   /// camera screen). Treats inputs as both raw and processed for simplicity —
   /// the editor can still re-apply filters and replace processed entries.
-  void seedScanPages(List<File> pages) {
+  void seedScanPages(List<File> pages, {bool notify = true}) {
     if (pages.isEmpty) return;
     _rawPages = List<File>.from(pages);
     _processedPages = List<File>.from(pages);
     _previewIndex = 0;
     ocrText = null;
     _selectedFilter = ScanFilter.auto;
-    notifyListeners();
+    if (notify) notifyListeners();
   }
 
-  /// Launches the edge-detection scanner and populates rawPages,
-  /// applies auto filter to produce processedPages, then navigates to editor.
-  Future<void> startEdgeScan(BuildContext context) async {
+  /// Processes pages captured from the scanner route (new DocumentsScope).
+  Future<void> processInitialPages(List<File> pages) async {
+    if (pages.isEmpty) return;
     try {
       isScanProcessing = true;
       scanProgress = 0.0;
       notifyListeners();
+      await _processRawScanPages(pages);
+    } catch (e) {
+      errorMessage = 'Failed to prepare document: $e';
+      rethrow;
+    } finally {
+      isScanProcessing = false;
+      scanProgress = 0.0;
+      notifyListeners();
+    }
+  }
 
+  /// Launches edge-detection scan, then opens the editor which shows a
+  /// preparing loader while filters are applied.
+  Future<void> startEdgeScan(BuildContext context) async {
+    try {
       final pages = await ScannerService.scanWithEdgeDetection();
       if (pages.isEmpty) {
-        isScanProcessing = false;
-        notifyListeners();
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -346,24 +349,22 @@ class DocumentViewModel extends ChangeNotifier {
         return;
       }
 
-      final processed = await _processRawScanPages(pages);
-
-      isScanProcessing = false;
-      scanProgress = 0.0;
-      notifyListeners();
-
       if (context.mounted) {
-        // Scanner editor route uses a new DocumentsScope + ViewModel — pass files
-        // via `extra` or the editor will show "No pages to edit".
         context.push(
           '/documents/scanner-editor',
-          extra: List<File>.from(processed),
+          extra: {
+            'pages': List<File>.from(pages),
+            'processOnLoad': true,
+          },
         );
       }
     } catch (e) {
-      isScanProcessing = false;
       errorMessage = 'Scan failed: $e';
-      notifyListeners();
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Scan failed: $e')),
+        );
+      }
     }
   }
 

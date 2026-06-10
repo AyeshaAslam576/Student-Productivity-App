@@ -4,8 +4,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import '../../../../core/theme/app_colors.dart';
-import '../../../../core/theme/app_text_styles.dart';
+import '../../../../core/theme/app_palette.dart';
 
 class InputSelector extends StatefulWidget {
   final String hintText;
@@ -71,13 +70,14 @@ class InputSelectorState extends State<InputSelector> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return Column(
       children: [
         Container(
           decoration: BoxDecoration(
-            color: AppColors.surfaceElevated,
+            color: colors.surfaceElevated,
             borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: AppColors.surfaceBorder, width: 0.5),
+            border: Border.all(color: colors.surfaceBorder, width: 0.5),
           ),
           padding: const EdgeInsets.all(3),
           child: Row(
@@ -105,20 +105,20 @@ class InputSelectorState extends State<InputSelector> {
         if (!_useFile) ...[
           Container(
             decoration: BoxDecoration(
-              color: AppColors.surfaceElevated,
+              color: colors.surfaceElevated,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppColors.surfaceBorder, width: 0.5),
+              border: Border.all(color: colors.surfaceBorder, width: 0.5),
             ),
             child: TextField(
               controller: widget.textCtrl,
               maxLines: 7,
-              style: AppTextStyles.body,
-              cursorColor: AppColors.accent,
+              style: context.text.body,
+              cursorColor: colors.accent,
               onChanged: widget.onInputChanged,
               decoration: InputDecoration(
                 hintText: widget.hintText,
                 hintStyle:
-                    AppTextStyles.body.copyWith(color: AppColors.textMuted),
+                    context.text.body.copyWith(color: colors.textMuted),
                 border: InputBorder.none,
                 contentPadding: const EdgeInsets.all(16),
               ),
@@ -143,23 +143,23 @@ class InputSelectorState extends State<InputSelector> {
             child: Container(
               padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
               decoration: BoxDecoration(
-                color: AppColors.accent.withOpacity(0.08),
+                color: colors.accent.withOpacity(0.08),
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: AppColors.accent.withOpacity(0.2)),
+                border: Border.all(color: colors.accent.withOpacity(0.2)),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(
+                  Icon(
                     Icons.paste_rounded,
                     size: 16,
-                    color: AppColors.accent,
+                    color: colors.accent,
                   ),
                   const SizedBox(width: 6),
                   Text(
                     'Paste from clipboard',
-                    style: AppTextStyles.bodySmall.copyWith(
-                      color: AppColors.accent,
+                    style: context.text.bodySmall.copyWith(
+                      color: colors.accent,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -174,10 +174,10 @@ class InputSelectorState extends State<InputSelector> {
             child: Container(
               height: 160,
               decoration: BoxDecoration(
-                color: AppColors.surfaceElevated,
+                color: colors.surfaceElevated,
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                  color: AppColors.accent.withOpacity(0.3),
+                  color: colors.accent.withOpacity(0.3),
                   width: 1.5,
                 ),
               ),
@@ -186,28 +186,28 @@ class InputSelectorState extends State<InputSelector> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         if (_isProcessing)
-                          const CircularProgressIndicator(
+                          CircularProgressIndicator(
                             valueColor:
-                                AlwaysStoppedAnimation(AppColors.accent),
+                                AlwaysStoppedAnimation(colors.accent),
                           )
                         else ...[
-                          const Icon(
+                          Icon(
                             Icons.cloud_upload_outlined,
                             size: 40,
-                            color: AppColors.accent,
+                            color: colors.accent,
                           ),
                           const SizedBox(height: 12),
                           Text(
                             'Tap to upload PDF, DOCX, or TXT',
-                            style: AppTextStyles.body.copyWith(
-                              color: AppColors.textSecondary,
+                            style: context.text.body.copyWith(
+                              color: colors.textSecondary,
                             ),
                           ),
                           const SizedBox(height: 6),
                           Text(
                             'Max 10MB',
-                            style: AppTextStyles.caption.copyWith(
-                              color: AppColors.textMuted,
+                            style: context.text.caption.copyWith(
+                              color: colors.textMuted,
                             ),
                           ),
                         ],
@@ -216,22 +216,22 @@ class InputSelectorState extends State<InputSelector> {
                   : Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Icon(
+                        Icon(
                           Icons.check_circle_rounded,
                           size: 36,
-                          color: AppColors.success,
+                          color: colors.success,
                         ),
                         const SizedBox(height: 8),
                         Text(
                           _selectedFile!.uri.pathSegments.last,
-                          style: AppTextStyles.bodySmall.copyWith(
+                          style: context.text.bodySmall.copyWith(
                             fontWeight: FontWeight.w600,
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
                         const SizedBox(height: 4),
-                        Text('Ready to analyze', style: AppTextStyles.caption),
+                        Text('Ready to analyze', style: context.text.caption),
                       ],
                     ),
             ),
@@ -257,13 +257,14 @@ class _ModeTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(vertical: 10),
         decoration: BoxDecoration(
-          color: isActive ? AppColors.accentSoft : Colors.transparent,
+          color: isActive ? colors.accentSoft : Colors.transparent,
           borderRadius: BorderRadius.circular(8),
         ),
         child: Row(
@@ -272,13 +273,13 @@ class _ModeTab extends StatelessWidget {
             Icon(
               icon,
               size: 16,
-              color: isActive ? AppColors.accent : AppColors.textMuted,
+              color: isActive ? colors.accent : colors.textMuted,
             ),
             const SizedBox(width: 6),
             Text(
               label,
-              style: AppTextStyles.bodySmall.copyWith(
-                color: isActive ? AppColors.accent : AppColors.textMuted,
+              style: context.text.bodySmall.copyWith(
+                color: isActive ? colors.accent : colors.textMuted,
                 fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
               ),
             ),

@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
-import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_text_styles.dart';
+import '../../../core/navigation/back_navigation.dart';
+import '../../../core/theme/app_palette.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/widgets/brainup_card.dart';
 import '../../../core/widgets/brainup_shimmer.dart';
@@ -23,7 +23,7 @@ class CgpaScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final vm = context.watch<CgpaViewModel>();
     return Scaffold(
-      backgroundColor: AppColors.surface,
+      backgroundColor: context.colors.surface,
       body: SafeArea(
         child: Column(
           children: [
@@ -68,28 +68,19 @@ class _CgpaAppBar extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 8, 12, 12),
-      decoration: const BoxDecoration(
-        color: AppColors.surface,
+      decoration: BoxDecoration(
+        color: context.colors.surface,
         border: Border(
-            bottom: BorderSide(color: AppColors.surfaceBorder, width: 0.5)),
+            bottom: BorderSide(color: context.colors.surfaceBorder, width: 0.5)),
       ),
       child: Row(
         children: [
-          IconButton(
-            onPressed: () {
-              if (context.canPop()) {
-                context.pop();
-              } else {
-                context.go('/home');
-              }
-            },
-            icon: const Icon(Icons.arrow_back_rounded,
-                color: AppColors.textPrimary),
-          ),
+          brainUpBackButton(context,
+              iconColor: context.colors.textPrimary),
           Flexible(
             child: Text(
               'CGPA Calculator',
-              style: AppTextStyles.h3,
+              style: context.text.h3,
               overflow: TextOverflow.ellipsis,
             ),
           ),
@@ -113,8 +104,8 @@ class _CgpaBody extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return RefreshIndicator(
-      color: AppColors.accent,
-      backgroundColor: AppColors.surfaceCard,
+      color: context.colors.accent,
+      backgroundColor: context.colors.surfaceCard,
       onRefresh: vm.loadSemesters,
       child: ListView(
         padding: const EdgeInsets.all(AppSpacing.screenPadding),
@@ -124,30 +115,30 @@ class _CgpaBody extends StatelessWidget {
               margin: const EdgeInsets.only(bottom: 12),
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
-                color: AppColors.warning.withOpacity(0.12),
+                color: context.colors.warning.withOpacity(0.12),
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: AppColors.warning.withOpacity(0.3)),
+                border: Border.all(color: context.colors.warning.withOpacity(0.3)),
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.wifi_off_rounded,
-                      size: 14, color: AppColors.warning),
+                  Icon(Icons.wifi_off_rounded,
+                      size: 14, color: context.colors.warning),
                   const SizedBox(width: 8),
                   Text(
                     'Offline — showing cached data',
-                    style: AppTextStyles.caption
-                        .copyWith(color: AppColors.warning),
+                    style: context.text.caption
+                        .copyWith(color: context.colors.warning),
                   ),
                 ],
               ),
             ),
           // ─── Header CGPA Card ───
           BrainUpCard(
-            gradient: AppColors.primaryGradient,
+            gradient: context.colors.primaryGradient,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Current CGPA', style: AppTextStyles.bodySmall),
+                Text('Current CGPA', style: context.text.bodySmall),
                 const SizedBox(height: 8),
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.end,
@@ -158,21 +149,21 @@ class _CgpaBody extends StatelessWidget {
                       curve: Curves.easeOut,
                       builder: (_, val, __) => Text(
                         val.toStringAsFixed(2),
-                        style: AppTextStyles.display,
+                        style: context.text.display,
                       ),
                     ),
                     Padding(
                       padding: const EdgeInsets.only(bottom: 8, left: 4),
-                      child: Text('/ 4.00', style: AppTextStyles.bodySmall),
+                      child: Text('/ 4.00', style: context.text.bodySmall),
                     ),
                     const Spacer(),
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
                         Text('${vm.semesters.length} Semesters',
-                            style: AppTextStyles.caption),
+                            style: context.text.caption),
                         Text('${vm.totalCredits} Credit Hours',
-                            style: AppTextStyles.caption),
+                            style: context.text.caption),
                       ],
                     ),
                   ],
@@ -203,7 +194,7 @@ class _CgpaBody extends StatelessWidget {
               _BestWorstBanner(vm: vm),
               const SizedBox(height: 14),
             ],
-            Text('Semester History', style: AppTextStyles.h4),
+            Text('Semester History', style: context.text.h4),
             const SizedBox(height: 12),
             ...vm.semesters.asMap().entries.map(
                   (e) => Padding(
@@ -245,12 +236,12 @@ class _CgpaSparkline extends StatelessWidget {
           LineChartBarData(
             spots: spots,
             isCurved: true,
-            color: AppColors.accent,
+            color: context.colors.accent,
             barWidth: 2,
             dotData: FlDotData(
               getDotPainter: (_, __, ___, ____) => FlDotCirclePainter(
                 radius: 3,
-                color: AppColors.accent,
+                color: context.colors.accent,
                 strokeWidth: 0,
               ),
             ),
@@ -260,7 +251,7 @@ class _CgpaSparkline extends StatelessWidget {
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
                 colors: [
-                  AppColors.accent.withOpacity(0.3),
+                  context.colors.accent.withOpacity(0.3),
                   Colors.transparent,
                 ],
               ),
@@ -289,9 +280,9 @@ class _SemesterCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.surfaceCard,
+        color: context.colors.surfaceCard,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.surfaceBorder, width: 0.5),
+        border: Border.all(color: context.colors.surfaceBorder, width: 0.5),
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(16),
@@ -301,7 +292,8 @@ class _SemesterCard extends StatelessWidget {
               left: 0,
               top: 0,
               bottom: 0,
-              child: Container(width: 4, color: _semesterAccent(semester.gpa)),
+              child: Container(
+                  width: 4, color: _semesterAccent(context, semester.gpa)),
             ),
             Padding(
               padding: const EdgeInsets.only(left: 4),
@@ -318,10 +310,10 @@ class _SemesterCard extends StatelessWidget {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(semester.name, style: AppTextStyles.h5),
+                                Text(semester.name, style: context.text.h5),
                                 Text(
                                     '${semester.session} ${semester.year} · ${semester.totalCredits} credits',
-                                    style: AppTextStyles.caption),
+                                    style: context.text.caption),
                                 const SizedBox(height: 6),
                                 Row(
                                   children: semester.subjects
@@ -333,7 +325,7 @@ class _SemesterCard extends StatelessWidget {
                                           margin:
                                               const EdgeInsets.only(right: 3),
                                           decoration: BoxDecoration(
-                                            color: _gradeColor(s.grade),
+                                            color: _gradeColor(context, s.grade),
                                             shape: BoxShape.circle,
                                           ),
                                         ),
@@ -347,26 +339,26 @@ class _SemesterCard extends StatelessWidget {
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 10, vertical: 4),
                             decoration: BoxDecoration(
-                              color: AppColors.accentSoft,
+                              color: context.colors.accentSoft,
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Text(
                               'GPA ${semester.gpa.toStringAsFixed(2)}',
-                              style: AppTextStyles.label
-                                  .copyWith(color: AppColors.accent),
+                              style: context.text.label
+                                  .copyWith(color: context.colors.accent),
                             ),
                           ),
                           const SizedBox(width: 8),
                           Icon(
                             isExpanded ? Icons.expand_less : Icons.expand_more,
-                            color: AppColors.textSecondary,
+                            color: context.colors.textSecondary,
                           ),
                         ],
                       ),
                     ),
                   ),
                   if (isExpanded) ...[
-                    const Divider(height: 0, color: AppColors.surfaceBorder),
+                    Divider(height: 0, color: context.colors.surfaceBorder),
                     Padding(
                       padding: const EdgeInsets.fromLTRB(16, 10, 16, 14),
                       child: Column(
@@ -377,26 +369,26 @@ class _SemesterCard extends StatelessWidget {
                               children: [
                                 Expanded(
                                     child: Text('Subject',
-                                        style: AppTextStyles.caption)),
+                                        style: context.text.caption)),
                                 SizedBox(
                                     width: 40,
                                     child: Text('CH',
-                                        style: AppTextStyles.caption,
+                                        style: context.text.caption,
                                         textAlign: TextAlign.center)),
                                 SizedBox(
                                     width: 44,
                                     child: Text('Grade',
-                                        style: AppTextStyles.caption,
+                                        style: context.text.caption,
                                         textAlign: TextAlign.center)),
                                 SizedBox(
                                     width: 36,
                                     child: Text('GP',
-                                        style: AppTextStyles.caption,
+                                        style: context.text.caption,
                                         textAlign: TextAlign.center)),
                               ],
                             ),
                           ),
-                          const Divider(color: AppColors.surfaceBorder),
+                          Divider(color: context.colors.surfaceBorder),
                           ...semester.subjects.map(
                             (sub) => Padding(
                               padding: const EdgeInsets.symmetric(vertical: 4),
@@ -406,12 +398,12 @@ class _SemesterCard extends StatelessWidget {
                                     children: [
                                       Expanded(
                                           child: Text(sub.name,
-                                              style: AppTextStyles.body,
+                                              style: context.text.body,
                                               overflow: TextOverflow.ellipsis)),
                                       SizedBox(
                                           width: 40,
                                           child: Text('${sub.creditHours}',
-                                              style: AppTextStyles.body,
+                                              style: context.text.body,
                                               textAlign: TextAlign.center)),
                                       SizedBox(
                                         width: 44,
@@ -420,15 +412,17 @@ class _SemesterCard extends StatelessWidget {
                                             padding: const EdgeInsets.symmetric(
                                                 horizontal: 6, vertical: 2),
                                             decoration: BoxDecoration(
-                                              color: _gradeColor(sub.grade)
+                                              color: _gradeColor(
+                                                      context, sub.grade)
                                                   .withOpacity(0.15),
                                               borderRadius:
                                                   BorderRadius.circular(4),
                                             ),
                                             child: Text(sub.grade,
-                                                style: AppTextStyles.labelSmall
+                                                style: context.text.labelSmall
                                                     .copyWith(
                                                         color: _gradeColor(
+                                                            context,
                                                             sub.grade))),
                                           ),
                                         ),
@@ -438,16 +432,16 @@ class _SemesterCard extends StatelessWidget {
                                           child: Text(
                                               sub.gradePoints
                                                   .toStringAsFixed(1),
-                                              style: AppTextStyles.body,
+                                              style: context.text.body,
                                               textAlign: TextAlign.center)),
                                     ],
                                   ),
                                   const SizedBox(height: 6),
                                   LinearProgressIndicator(
                                     value: sub.gradePoints / 4.0,
-                                    backgroundColor: AppColors.surfaceElevated,
+                                    backgroundColor: context.colors.surfaceElevated,
                                     valueColor: AlwaysStoppedAnimation(
-                                        _gradeColor(sub.grade)),
+                                        _gradeColor(context, sub.grade)),
                                     borderRadius: BorderRadius.circular(4),
                                     minHeight: 4,
                                   ),
@@ -455,27 +449,27 @@ class _SemesterCard extends StatelessWidget {
                               ),
                             ),
                           ),
-                          const Divider(color: AppColors.surfaceBorder),
+                          Divider(color: context.colors.surfaceBorder),
                           Row(
                             children: [
-                              const Expanded(
+                              Expanded(
                                   child: Text('Total',
                                       style: TextStyle(
-                                          color: AppColors.textSecondary,
+                                          color: context.colors.textSecondary,
                                           fontSize: 13,
                                           fontWeight: FontWeight.w600))),
                               SizedBox(
                                   width: 40,
                                   child: Text('${semester.totalCredits}',
-                                      style: AppTextStyles.label
-                                          .copyWith(color: AppColors.accent),
+                                      style: context.text.label
+                                          .copyWith(color: context.colors.accent),
                                       textAlign: TextAlign.center)),
                               const SizedBox(width: 44),
                               SizedBox(
                                   width: 36,
                                   child: Text(semester.gpa.toStringAsFixed(2),
-                                      style: AppTextStyles.label
-                                          .copyWith(color: AppColors.accent),
+                                      style: context.text.label
+                                          .copyWith(color: context.colors.accent),
                                       textAlign: TextAlign.center)),
                             ],
                           ),
@@ -486,7 +480,7 @@ class _SemesterCard extends StatelessWidget {
                               onPressed: () {
                                 showModalBottomSheet(
                                   context: context,
-                                  backgroundColor: AppColors.surfaceCard,
+                                  backgroundColor: context.colors.surfaceCard,
                                   shape: const RoundedRectangleBorder(
                                     borderRadius: BorderRadius.vertical(
                                         top: Radius.circular(20)),
@@ -496,15 +490,15 @@ class _SemesterCard extends StatelessWidget {
                                     child: Column(
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
-                                        const Icon(Icons.warning_amber_rounded,
-                                            color: AppColors.error, size: 36),
+                                        Icon(Icons.warning_amber_rounded,
+                                            color: context.colors.error, size: 36),
                                         const SizedBox(height: 12),
                                         Text('Delete ${semester.name}?',
-                                            style: AppTextStyles.h4),
+                                            style: context.text.h4),
                                         const SizedBox(height: 6),
                                         Text(
                                           'This will permanently delete all ${semester.subjects.length} subjects.',
-                                          style: AppTextStyles.body,
+                                          style: context.text.body,
                                           textAlign: TextAlign.center,
                                         ),
                                         const SizedBox(height: 20),
@@ -534,11 +528,11 @@ class _SemesterCard extends StatelessWidget {
                                   ),
                                 );
                               },
-                              icon: const Icon(Icons.delete_outline,
-                                  size: 16, color: AppColors.error),
-                              label: const Text('Delete Semester',
+                              icon: Icon(Icons.delete_outline,
+                                  size: 16, color: context.colors.error),
+                              label: Text('Delete Semester',
                                   style: TextStyle(
-                                      color: AppColors.error, fontSize: 13)),
+                                      color: context.colors.error, fontSize: 13)),
                             ),
                           ),
                         ],
@@ -554,20 +548,20 @@ class _SemesterCard extends StatelessWidget {
     );
   }
 
-  Color _gradeColor(String grade) {
+  Color _gradeColor(BuildContext context, String grade) {
     final gp = SubjectGradeModel.gradePointsFromGrade(grade);
-    if (gp >= 3.5) return AppColors.success;
-    if (gp >= 2.5) return AppColors.warning;
-    if (gp >= 1.0) return AppColors.error;
-    return AppColors.error;
+    if (gp >= 3.5) return context.colors.success;
+    if (gp >= 2.5) return context.colors.warning;
+    if (gp >= 1.0) return context.colors.error;
+    return context.colors.error;
   }
 
-  Color _semesterAccent(double gpa) {
-    if (gpa >= 3.5) return AppColors.success;
+  Color _semesterAccent(BuildContext context, double gpa) {
+    if (gpa >= 3.5) return context.colors.success;
     if (gpa >= 3.0) return const Color(0xFF00BFA5);
-    if (gpa >= 2.5) return AppColors.warning;
+    if (gpa >= 2.5) return context.colors.warning;
     if (gpa >= 2.0) return Colors.orange;
-    return AppColors.error;
+    return context.colors.error;
   }
 }
 
@@ -585,8 +579,8 @@ class _BestWorstBanner extends StatelessWidget {
           child: BrainUpCard(
             gradient: LinearGradient(
               colors: [
-                AppColors.success.withOpacity(0.08),
-                AppColors.surfaceCard,
+                context.colors.success.withOpacity(0.08),
+                context.colors.surfaceCard,
               ],
             ),
             child: Column(
@@ -594,21 +588,21 @@ class _BestWorstBanner extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    const Icon(Icons.emoji_events_rounded,
-                        color: AppColors.success, size: 18),
+                    Icon(Icons.emoji_events_rounded,
+                        color: context.colors.success, size: 18),
                     const SizedBox(width: 6),
-                    Text('Best Semester', style: AppTextStyles.label),
+                    Text('Best Semester', style: context.text.label),
                   ],
                 ),
                 const SizedBox(height: 8),
                 Text(best.name,
-                    style: AppTextStyles.h5,
+                    style: context.text.h5,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis),
                 const SizedBox(height: 4),
                 Text('GPA ${best.gpa.toStringAsFixed(2)}',
                     style:
-                        AppTextStyles.body.copyWith(color: AppColors.success)),
+                        context.text.body.copyWith(color: context.colors.success)),
               ],
             ),
           ),
@@ -618,8 +612,8 @@ class _BestWorstBanner extends StatelessWidget {
           child: BrainUpCard(
             gradient: LinearGradient(
               colors: [
-                AppColors.error.withOpacity(0.08),
-                AppColors.surfaceCard,
+                context.colors.error.withOpacity(0.08),
+                context.colors.surfaceCard,
               ],
             ),
             child: Column(
@@ -627,20 +621,20 @@ class _BestWorstBanner extends StatelessWidget {
               children: [
                 Row(
                   children: [
-                    const Icon(Icons.trending_down_rounded,
-                        color: AppColors.error, size: 18),
+                    Icon(Icons.trending_down_rounded,
+                        color: context.colors.error, size: 18),
                     const SizedBox(width: 6),
-                    Text('Needs Focus', style: AppTextStyles.label),
+                    Text('Needs Focus', style: context.text.label),
                   ],
                 ),
                 const SizedBox(height: 8),
                 Text(worst.name,
-                    style: AppTextStyles.h5,
+                    style: context.text.h5,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis),
                 const SizedBox(height: 4),
                 Text('GPA ${worst.gpa.toStringAsFixed(2)}',
-                    style: AppTextStyles.body.copyWith(color: AppColors.error)),
+                    style: context.text.body.copyWith(color: context.colors.error)),
               ],
             ),
           ),
@@ -668,16 +662,16 @@ class _GoalTrackerRow extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: AppColors.surfaceCard.withOpacity(0.3),
+        color: context.colors.surfaceCard.withOpacity(0.3),
         borderRadius: BorderRadius.circular(10),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(Icons.flag_rounded, color: AppColors.warning, size: 18),
+          Icon(Icons.flag_rounded, color: context.colors.warning, size: 18),
           const SizedBox(width: 8),
           Expanded(
-              child: Text(vm.targetInsight, style: AppTextStyles.bodySmall)),
+              child: Text(vm.targetInsight, style: context.text.bodySmall)),
           TextButton(
             onPressed: () => _showGoalDialog(context),
             style: TextButton.styleFrom(
@@ -697,13 +691,13 @@ class _GoalTrackerRow extends StatelessWidget {
       builder: (dialogContext) {
         return StatefulBuilder(
           builder: (_, setLocal) => AlertDialog(
-            backgroundColor: AppColors.surfaceCard,
-            title: Text('Set CGPA Goal', style: AppTextStyles.h4),
+            backgroundColor: context.colors.surfaceCard,
+            title: Text('Set CGPA Goal', style: context.text.h4),
             content: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text('Target: ${current.toStringAsFixed(1)}',
-                    style: AppTextStyles.body),
+                    style: context.text.body),
                 Slider(
                   min: min,
                   max: 4.0,
@@ -816,87 +810,112 @@ class _AddSemesterSheetState extends State<AddSemesterSheet> {
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
-      builder: (_) => Container(
-        decoration: BoxDecoration(
-          color: AppColors.surfaceCard,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-          gradient: LinearGradient(
-            colors: [color.withOpacity(0.25), AppColors.surfaceCard],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
+      builder: (sheetCtx) {
+        final colors = sheetCtx.colors;
+        final text = sheetCtx.text;
+        return Container(
+          decoration: BoxDecoration(
+            color: colors.surfaceCard,
+            borderRadius:
+                const BorderRadius.vertical(top: Radius.circular(24)),
+            border: Border(
+              top: BorderSide(color: color.withOpacity(0.6), width: 3),
+            ),
           ),
-        ),
-        child: SafeArea(
-          top: false,
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Center(
-                    child: Text(emoji, style: const TextStyle(fontSize: 42))),
-                const SizedBox(height: 8),
-                Center(
-                  child: Text(
-                    vm.aiMotivation ?? '',
-                    style: AppTextStyles.h4,
-                    textAlign: TextAlign.center,
+          child: SafeArea(
+            top: false,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 20, vertical: 12),
+                      decoration: BoxDecoration(
+                        color: color.withOpacity(0.12),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(emoji,
+                          style: const TextStyle(fontSize: 42)),
+                    ),
                   ),
-                ),
-                const SizedBox(height: 14),
-                ...vm.aiTips.asMap().entries.map(
-                      (e) => Padding(
-                        padding: const EdgeInsets.only(bottom: 8),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Container(
-                              width: 7,
-                              height: 7,
-                              margin: const EdgeInsets.only(top: 6),
-                              decoration: BoxDecoration(
-                                  color: color, shape: BoxShape.circle),
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                                child: Text('${e.key + 1}. ${e.value}',
-                                    style: AppTextStyles.body)),
-                          ],
+                  const SizedBox(height: 12),
+                  Center(
+                    child: Text(
+                      vm.aiMotivation ?? '',
+                      style: text.bodyLarge.copyWith(
+                        color: colors.textPrimary,
+                        fontWeight: FontWeight.w600,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  ...vm.aiTips.asMap().entries.map(
+                        (e) => Padding(
+                          padding: const EdgeInsets.only(bottom: 8),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Container(
+                                width: 7,
+                                height: 7,
+                                margin: const EdgeInsets.only(top: 6),
+                                decoration: BoxDecoration(
+                                    color: color, shape: BoxShape.circle),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  '${e.key + 1}. ${e.value}',
+                                  style: text.bodyLarge.copyWith(
+                                    color: colors.textPrimary,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                  if ((vm.aiGoal ?? '').isNotEmpty)
+                    Container(
+                      width: double.infinity,
+                      margin: const EdgeInsets.only(top: 6, bottom: 14),
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: color.withOpacity(0.12),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: color.withOpacity(0.35)),
+                      ),
+                      child: Text(
+                        'Goal: ${vm.aiGoal}',
+                        style: text.bodyLarge.copyWith(
+                          color: colors.textPrimary,
                         ),
                       ),
                     ),
-                if ((vm.aiGoal ?? '').isNotEmpty)
-                  Container(
-                    width: double.infinity,
-                    margin: const EdgeInsets.only(top: 6, bottom: 14),
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: color.withOpacity(0.12),
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: color.withOpacity(0.35)),
-                    ),
-                    child: Text('Goal: ${vm.aiGoal}',
-                        style: AppTextStyles.body.copyWith(color: color)),
+                  BrainUpButton(
+                    label: 'Keep Going!',
+                    onTap: () => Navigator.pop(sheetCtx),
                   ),
-                BrainUpButton(
-                  label: 'Keep Going!',
-                  onTap: () => Navigator.pop(context),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
-        ),
-      ),
+        );
+      },
     );
     vm.clearMotivation();
   }
 
   Color _motivationColor(double gpa) {
-    if (gpa >= 3.5) return AppColors.success;
+    if (gpa >= 3.5) return context.colors.success;
     if (gpa >= 3.0) return const Color(0xFF00BFA5);
-    if (gpa >= 2.5) return AppColors.warning;
-    return AppColors.error;
+    if (gpa >= 2.5) return context.colors.warning;
+    return context.colors.error;
   }
 
   String _motivationEmoji(double gpa) {
@@ -911,9 +930,9 @@ class _AddSemesterSheetState extends State<AddSemesterSheet> {
     final vm = context.watch<CgpaViewModel>();
     return Container(
       height: MediaQuery.of(context).size.height * 0.92,
-      decoration: const BoxDecoration(
-        color: AppColors.surfaceCard,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      decoration: BoxDecoration(
+        color: context.colors.surfaceCard,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
       ),
       child: Column(
         children: [
@@ -922,31 +941,31 @@ class _AddSemesterSheetState extends State<AddSemesterSheet> {
             height: 4,
             margin: const EdgeInsets.symmetric(vertical: 12),
             decoration: BoxDecoration(
-                color: AppColors.surfaceBorder,
+                color: context.colors.surfaceBorder,
                 borderRadius: BorderRadius.circular(2)),
           ),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: Row(
               children: [
-                Text('Add Semester', style: AppTextStyles.h4),
+                Text('Add Semester', style: context.text.h4),
                 const Spacer(),
                 if (_previewGpa > 0)
                   Container(
                     padding:
                         const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
-                        color: AppColors.accentSoft,
+                        color: context.colors.accentSoft,
                         borderRadius: BorderRadius.circular(8)),
                     child: Text('GPA ${_previewGpa.toStringAsFixed(2)}',
-                        style: AppTextStyles.label
-                            .copyWith(color: AppColors.accent)),
+                        style: context.text.label
+                            .copyWith(color: context.colors.accent)),
                   ),
                 const SizedBox(width: 8),
                 IconButton(
                   onPressed: () => Navigator.pop(context),
-                  icon: const Icon(Icons.close_rounded,
-                      color: AppColors.textSecondary),
+                  icon: Icon(Icons.close_rounded,
+                      color: context.colors.textSecondary),
                 ),
               ],
             ),
@@ -973,20 +992,20 @@ class _AddSemesterSheetState extends State<AddSemesterSheet> {
                       Expanded(
                         child: DropdownButtonFormField<String>(
                           value: _session,
-                          dropdownColor: AppColors.surfaceCard,
-                          style: AppTextStyles.body,
+                          dropdownColor: context.colors.surfaceCard,
+                          style: context.text.body,
                           decoration: InputDecoration(
                             labelText: 'Session',
                             filled: true,
-                            fillColor: AppColors.surfaceElevated,
+                            fillColor: context.colors.surfaceElevated,
                             border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(12),
-                                borderSide: const BorderSide(
-                                    color: AppColors.surfaceBorder)),
+                                borderSide: BorderSide(
+                                    color: context.colors.surfaceBorder)),
                             enabledBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(12),
-                                borderSide: const BorderSide(
-                                    color: AppColors.surfaceBorder,
+                                borderSide: BorderSide(
+                                    color: context.colors.surfaceBorder,
                                     width: 0.5)),
                           ),
                           items: _sessions
@@ -1001,7 +1020,7 @@ class _AddSemesterSheetState extends State<AddSemesterSheet> {
                   const SizedBox(height: 20),
                   Row(
                     children: [
-                      Text('Subjects', style: AppTextStyles.h4),
+                      Text('Subjects', style: context.text.h4),
                       const Spacer(),
                       TextButton.icon(
                         onPressed: _addSubject,
@@ -1014,7 +1033,7 @@ class _AddSemesterSheetState extends State<AddSemesterSheet> {
                   if (_subjects.isEmpty)
                     Center(
                         child: Text('Tap Add to add subjects',
-                            style: AppTextStyles.bodySmall))
+                            style: context.text.bodySmall))
                   else
                     ..._subjects.asMap().entries.map((e) => _SubjectRow(
                           entry: e.value,
@@ -1070,7 +1089,7 @@ class _SubjectRowState extends State<_SubjectRow> {
                 Expanded(
                   child: TextField(
                     controller: widget.entry.nameCtrl,
-                    style: AppTextStyles.body,
+                    style: context.text.body,
                     decoration: const InputDecoration(
                       hintText: 'Subject name',
                       border: InputBorder.none,
@@ -1081,8 +1100,8 @@ class _SubjectRowState extends State<_SubjectRow> {
                   ),
                 ),
                 IconButton(
-                  icon: const Icon(Icons.delete_outline,
-                      size: 18, color: AppColors.error),
+                  icon: Icon(Icons.delete_outline,
+                      size: 18, color: context.colors.error),
                   onPressed: widget.onDelete,
                   padding: EdgeInsets.zero,
                   constraints: const BoxConstraints(),
@@ -1092,7 +1111,7 @@ class _SubjectRowState extends State<_SubjectRow> {
             const SizedBox(height: 8),
             Row(
               children: [
-                Text('Credits:', style: AppTextStyles.caption),
+                Text('Credits:', style: context.text.caption),
                 const SizedBox(width: 8),
                 _Stepper(
                   value: widget.entry.creditHours,
@@ -1104,15 +1123,15 @@ class _SubjectRowState extends State<_SubjectRow> {
                   },
                 ),
                 const Spacer(),
-                Text('Grade:', style: AppTextStyles.caption),
+                Text('Grade:', style: context.text.caption),
                 const SizedBox(width: 8),
                 DropdownButton<String>(
                   value: widget.entry.grade,
-                  hint: const Text('--',
+                  hint: Text('--',
                       style:
-                          TextStyle(color: AppColors.textMuted, fontSize: 13)),
-                  dropdownColor: AppColors.surfaceCard,
-                  style: AppTextStyles.body.copyWith(color: AppColors.accent),
+                          TextStyle(color: context.colors.textMuted, fontSize: 13)),
+                  dropdownColor: context.colors.surfaceCard,
+                  style: context.text.body.copyWith(color: context.colors.accent),
                   underline: const SizedBox(),
                   items: SubjectGradeModel.allGrades
                       .map((g) => DropdownMenuItem(value: g, child: Text(g)))
@@ -1152,17 +1171,17 @@ class _Stepper extends StatelessWidget {
             width: 24,
             height: 24,
             decoration: BoxDecoration(
-                color: AppColors.surfaceElevated, shape: BoxShape.circle),
+                color: context.colors.surfaceElevated, shape: BoxShape.circle),
             child: Icon(Icons.remove,
                 size: 14,
-                color: value > min ? AppColors.accent : AppColors.textMuted),
+                color: value > min ? context.colors.accent : context.colors.textMuted),
           ),
         ),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 10),
           child: Text('$value',
-              style: AppTextStyles.body.copyWith(
-                  color: AppColors.accent, fontWeight: FontWeight.w600)),
+              style: context.text.body.copyWith(
+                  color: context.colors.accent, fontWeight: FontWeight.w600)),
         ),
         GestureDetector(
           onTap: value < max ? () => onChanged(value + 1) : null,
@@ -1170,10 +1189,10 @@ class _Stepper extends StatelessWidget {
             width: 24,
             height: 24,
             decoration: BoxDecoration(
-                color: AppColors.surfaceElevated, shape: BoxShape.circle),
+                color: context.colors.surfaceElevated, shape: BoxShape.circle),
             child: Icon(Icons.add,
                 size: 14,
-                color: value < max ? AppColors.accent : AppColors.textMuted),
+                color: value < max ? context.colors.accent : context.colors.textMuted),
           ),
         ),
       ],

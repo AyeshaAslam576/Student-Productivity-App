@@ -5,8 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
-import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_text_styles.dart';
+import '../../../core/navigation/back_navigation.dart';
+import '../../../core/theme/app_palette.dart';
 import '../../../core/widgets/brainup_button.dart';
 import '../../../core/widgets/brainup_empty_state.dart';
 import '../services/pdf_service.dart';
@@ -72,10 +72,14 @@ class _ImageToPdfScreenState extends State<ImageToPdfScreen> {
   @override
   Widget build(BuildContext context) {
     final vm = context.read<DocumentViewModel>();
+    final colors = context.colors;
     return Scaffold(
-      backgroundColor: AppColors.surface,
+      backgroundColor: colors.surface,
       appBar: AppBar(
-        backgroundColor: AppColors.surface,
+        backgroundColor: colors.surface,
+        automaticallyImplyLeading: false,
+        leading: brainUpBackButton(context,
+            fallback: '/documents', iconColor: colors.textPrimary),
         title: const Text('Image to PDF'),
         actions: [
           IconButton(
@@ -109,7 +113,7 @@ class _ImageToPdfScreenState extends State<ImageToPdfScreen> {
                       height: 160,
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: AppColors.surfaceBorder),
+                        border: Border.all(color: colors.surfaceBorder),
                         image: DecorationImage(
                             image: FileImage(_images[i]), fit: BoxFit.cover),
                       ),
@@ -122,7 +126,7 @@ class _ImageToPdfScreenState extends State<ImageToPdfScreen> {
                               radius: 12,
                               backgroundColor: Colors.black54,
                               child: Text('${i + 1}',
-                                  style: AppTextStyles.caption),
+                                  style: context.text.caption),
                             ),
                           ),
                           Positioned(
@@ -144,10 +148,10 @@ class _ImageToPdfScreenState extends State<ImageToPdfScreen> {
                 ),
                 Container(
                   padding: const EdgeInsets.all(16),
-                  decoration: const BoxDecoration(
-                    color: AppColors.surfaceCard,
+                  decoration: BoxDecoration(
+                    color: colors.surfaceCard,
                     border:
-                        Border(top: BorderSide(color: AppColors.surfaceBorder)),
+                        Border(top: BorderSide(color: colors.surfaceBorder)),
                   ),
                   child: Column(
                     children: [
@@ -170,12 +174,12 @@ class _ImageToPdfScreenState extends State<ImageToPdfScreen> {
                       Row(
                         children: [
                           Text('${_images.length} images selected',
-                              style: AppTextStyles.bodySmall),
+                              style: context.text.bodySmall),
                           const Spacer(),
                           if (_isConverting)
                             Text(
                                 '${(_conversionProgress * 100).toStringAsFixed(0)}%',
-                                style: AppTextStyles.caption),
+                                style: context.text.caption),
                         ],
                       ),
                       const SizedBox(height: 10),

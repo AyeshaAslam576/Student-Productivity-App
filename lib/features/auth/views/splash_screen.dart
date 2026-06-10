@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
-import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_text_styles.dart';
+import '../../../core/theme/app_palette.dart';
+import '../../../core/widgets/brainup_logo.dart';
 import '../viewmodels/auth_viewmodel.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -32,11 +32,11 @@ class _SplashScreenState extends State<SplashScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return Scaffold(
-      backgroundColor: AppColors.surface,
+      backgroundColor: colors.surface,
       body: Stack(
         children: [
-          // Background glow
           Positioned(
             top: -100,
             right: -100,
@@ -47,7 +47,7 @@ class _SplashScreenState extends State<SplashScreen> {
                 shape: BoxShape.circle,
                 gradient: RadialGradient(
                   colors: [
-                    AppColors.accent.withValues(alpha: 0.12),
+                    colors.accent.withValues(alpha: 0.12),
                     Colors.transparent,
                   ],
                 ),
@@ -64,7 +64,7 @@ class _SplashScreenState extends State<SplashScreen> {
                 shape: BoxShape.circle,
                 gradient: RadialGradient(
                   colors: [
-                    AppColors.info.withValues(alpha: 0.08),
+                    colors.info.withValues(alpha: 0.08),
                     Colors.transparent,
                   ],
                 ),
@@ -75,43 +75,28 @@ class _SplashScreenState extends State<SplashScreen> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // Logo
-                Container(
-                  width: 96,
-                  height: 96,
-                  decoration: const BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: AppColors.accentGradient,
-                  ),
-                  child: const Icon(
-                    Icons.psychology_rounded,
-                    color: Colors.white,
-                    size: 52,
-                  ),
-                )
+                const BrainUpLogo(size: 96)
                     .animate()
                     .fadeIn(duration: 600.ms)
                     .scale(begin: const Offset(0.6, 0.6), curve: Curves.easeOutBack),
                 const SizedBox(height: 20),
-                // App name
-                Text('BrainUp', style: AppTextStyles.h1)
+                Text('BrainUp', style: context.text.h1)
                     .animate(delay: 300.ms)
                     .fadeIn(duration: 500.ms)
                     .slideY(begin: 0.2, curve: Curves.easeOut),
                 const SizedBox(height: 8),
                 Text('Study smarter.',
-                        style: AppTextStyles.bodySmall.copyWith(fontSize: 16))
+                        style: context.text.bodySmall.copyWith(fontSize: 16))
                     .animate(delay: 500.ms)
                     .fadeIn(duration: 500.ms)
                     .slideY(begin: 0.2, curve: Curves.easeOut),
                 const SizedBox(height: 40),
-                // Loading bar
                 Container(
                   width: 120,
                   height: 3,
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(2),
-                    color: AppColors.surfaceBorder,
+                    color: colors.surfaceBorder,
                   ),
                   child: Align(
                     alignment: Alignment.centerLeft,
@@ -119,7 +104,7 @@ class _SplashScreenState extends State<SplashScreen> {
                       height: 3,
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(2),
-                        gradient: AppColors.accentGradient,
+                        gradient: colors.accentGradient,
                       ),
                     )
                         .animate(delay: 700.ms)

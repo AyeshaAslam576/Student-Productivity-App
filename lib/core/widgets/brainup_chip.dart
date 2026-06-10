@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import '../theme/app_colors.dart';
-import '../theme/app_text_styles.dart';
+import '../theme/app_palette.dart';
 import '../theme/app_spacing.dart';
 
 class BrainUpChip extends StatelessWidget {
@@ -21,17 +20,22 @@ class BrainUpChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = selectedColor ?? AppColors.accent;
+    final colors = context.colors;
+    final color = selectedColor ?? colors.accent;
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected ? color.withOpacity(0.15) : AppColors.surfaceElevated,
+          color: isSelected
+              ? color.withValues(alpha: 0.15)
+              : colors.surfaceElevated,
           borderRadius: BorderRadius.circular(AppSpacing.radiusSm),
           border: Border.all(
-            color: isSelected ? color.withOpacity(0.6) : AppColors.surfaceBorder,
+            color: isSelected
+                ? color.withValues(alpha: 0.6)
+                : colors.surfaceBorder,
             width: isSelected ? 1 : 0.5,
           ),
         ),
@@ -42,14 +46,14 @@ class BrainUpChip extends StatelessWidget {
               Icon(
                 icon,
                 size: 14,
-                color: isSelected ? color : AppColors.textSecondary,
+                color: isSelected ? color : colors.textSecondary,
               ),
               const SizedBox(width: 6),
             ],
             Text(
               label,
-              style: AppTextStyles.labelSmall.copyWith(
-                color: isSelected ? color : AppColors.textSecondary,
+              style: context.text.labelSmall.copyWith(
+                color: isSelected ? color : colors.textSecondary,
                 fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
               ),
             ),

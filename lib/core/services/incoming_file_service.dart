@@ -3,8 +3,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:receive_sharing_intent/receive_sharing_intent.dart';
 
-import '../theme/app_colors.dart';
-import '../theme/app_text_styles.dart';
+import '../theme/app_palette.dart';
+import '../widgets/brainup_logo.dart';
 
 class IncomingFileService {
   static StreamSubscription? _sub;
@@ -37,13 +37,14 @@ class _IncomingFileSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     final isPdf = files.any((f) => f.path.toLowerCase().endsWith('.pdf'));
     final isMultipleImages = files.length > 1;
     return Container(
       padding: const EdgeInsets.all(24),
-      decoration: const BoxDecoration(
-        color: AppColors.surfaceCard,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      decoration: BoxDecoration(
+        color: colors.surfaceCard,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -52,31 +53,23 @@ class _IncomingFileSheet extends StatelessWidget {
             width: 40,
             height: 4,
             decoration: BoxDecoration(
-              color: AppColors.surfaceBorder,
+              color: colors.surfaceBorder,
               borderRadius: BorderRadius.circular(2),
             ),
           ),
           const SizedBox(height: 16),
           Row(
             children: [
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  gradient: AppColors.accentGradient,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Icon(Icons.auto_awesome_rounded,
-                    color: Colors.white, size: 20),
-              ),
+              const BrainUpLogo(size: 40),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Open with BrainUp', style: AppTextStyles.h4),
+                    Text('Open with BrainUp', style: context.text.h4),
                     Text(
                       '${files.length} file${files.length > 1 ? 's' : ''} received',
-                      style: AppTextStyles.caption,
+                      style: context.text.caption,
                     ),
                   ],
                 ),
@@ -87,7 +80,7 @@ class _IncomingFileSheet extends StatelessWidget {
           if (isPdf) ...[
             _ActionTile(
               icon: Icons.picture_as_pdf_rounded,
-              color: AppColors.error,
+              color: colors.error,
               title: 'View PDF',
               subtitle: 'Open in BrainUp PDF viewer',
               onTap: () {
@@ -105,7 +98,7 @@ class _IncomingFileSheet extends StatelessWidget {
             const SizedBox(height: 10),
             _ActionTile(
               icon: Icons.auto_awesome_rounded,
-              color: AppColors.accent,
+              color: colors.accent,
               title: 'Analyze with AI',
               subtitle: 'Get summary, key topics, and study tips',
               onTap: () {
@@ -122,7 +115,7 @@ class _IncomingFileSheet extends StatelessWidget {
             const SizedBox(height: 10),
             _ActionTile(
               icon: Icons.picture_as_pdf_rounded,
-              color: AppColors.accent,
+              color: colors.accent,
               title: 'Convert to PDF',
               subtitle: '${files.length} images → one PDF',
               onTap: () {
@@ -138,8 +131,8 @@ class _IncomingFileSheet extends StatelessWidget {
           const SizedBox(height: 8),
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel',
-                style: TextStyle(color: AppColors.textSecondary)),
+            child: Text('Cancel',
+                style: TextStyle(color: colors.textSecondary)),
           ),
         ],
       ),
@@ -162,21 +155,22 @@ class _ActionTile extends StatelessWidget {
   });
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return GestureDetector(
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: AppColors.surfaceElevated,
+          color: colors.surfaceElevated,
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: AppColors.surfaceBorder, width: 0.5),
+          border: Border.all(color: colors.surfaceBorder, width: 0.5),
         ),
         child: Row(
           children: [
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: color.withOpacity(0.12),
+                color: color.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Icon(icon, color: color, size: 20),
@@ -187,14 +181,14 @@ class _ActionTile extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(title,
-                      style: AppTextStyles.body
+                      style: context.text.body
                           .copyWith(fontWeight: FontWeight.w600)),
-                  Text(subtitle, style: AppTextStyles.caption),
+                  Text(subtitle, style: context.text.caption),
                 ],
               ),
             ),
-            const Icon(Icons.arrow_forward_ios_rounded,
-                color: AppColors.textMuted, size: 14),
+            Icon(Icons.arrow_forward_ios_rounded,
+                color: colors.textMuted, size: 14),
           ],
         ),
       ),

@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import '../../../core/theme/app_palette.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_text_styles.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/widgets/brainup_card.dart';
 import '../../../core/widgets/brainup_shimmer.dart';
@@ -39,21 +39,21 @@ class HomeScreen extends StatelessWidget {
     final ttvm = context.watch<TimetableViewModel>();
     final cgpaVm = context.watch<CgpaViewModel>();
     final user = auth.user;
+    final colors = context.colors;
 
     return Scaffold(
-      backgroundColor: AppColors.surface,
+      backgroundColor: colors.surface,
       body: RefreshIndicator(
-        color: AppColors.accent,
-        backgroundColor: AppColors.surfaceCard,
+        color: colors.accent,
+        backgroundColor: colors.surfaceCard,
         onRefresh: vm.refresh,
         child: CustomScrollView(
           slivers: [
-            // ─── SliverAppBar ───
             SliverAppBar(
               expandedHeight: 140,
               pinned: true,
               automaticallyImplyLeading: false,
-              backgroundColor: AppColors.surface,
+              backgroundColor: colors.surface,
               surfaceTintColor: Colors.transparent,
               title: null,
               actions: [
@@ -61,8 +61,8 @@ class HomeScreen extends StatelessWidget {
                   children: [
                     IconButton(
                       onPressed: () => _showNotificationsSheet(context),
-                      icon: const Icon(Icons.notifications_outlined,
-                          color: AppColors.textPrimary),
+                      icon: Icon(Icons.notifications_outlined,
+                          color: colors.textPrimary),
                     ),
                     const Positioned(
                         top: 10, right: 10, child: BrainUpNotificationDot()),
@@ -72,7 +72,7 @@ class HomeScreen extends StatelessWidget {
               flexibleSpace: FlexibleSpaceBar(
                 collapseMode: CollapseMode.parallax,
                 background: Container(
-                  decoration: const BoxDecoration(gradient: AppColors.primaryGradient),
+                  decoration: BoxDecoration(gradient: colors.primaryGradient),
                   child: SafeArea(
                     child: Padding(
                       padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
@@ -82,12 +82,14 @@ class HomeScreen extends StatelessWidget {
                         children: [
                           Text(
                             '${AppDateUtils.greetingByTime()}, ${user?.name.split(' ').first ?? 'Student'} 👋',
-                            style: AppTextStyles.h3,
+                            style: context.text.h3
+                                .copyWith(color: Colors.white),
                           ),
                           const SizedBox(height: 4),
                           Text(
                             AppDateUtils.formatDate(DateTime.now()),
-                            style: AppTextStyles.bodySmall,
+                            style: context.text.bodySmall
+                                .copyWith(color: Colors.white70),
                           ),
                         ],
                       ),
@@ -96,30 +98,24 @@ class HomeScreen extends StatelessWidget {
                 ),
               ),
             ),
-
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.all(AppSpacing.screenPadding),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // ─── Quick Stats ───
                     vm.isLoading
                         ? const ShimmerStatRow()
                         : _QuickStatsRow(vm: vm, cgpa: cgpaVm.cgpa)
                             .animate()
                             .fadeIn(duration: 300.ms)
                             .slideY(begin: 0.05),
-
                     const SizedBox(height: AppSpacing.sectionSpacing),
-
-                    // ─── Today's Schedule ───
                     _SectionHeader(
                       title: "Today's Schedule",
                       onSeeAll: () => context.go('/timetable'),
                     ).animate(delay: 50.ms).fadeIn(duration: 300.ms),
                     const SizedBox(height: 12),
-                    // ─── In Progress Banner ───
                     if (!vm.isLoading && ttvm.currentLecture != null)
                       _InProgressCard(lecture: ttvm.currentLecture!)
                           .animate()
@@ -152,7 +148,7 @@ class HomeScreen extends StatelessWidget {
                           child: Padding(
                             padding: const EdgeInsets.all(16),
                             child: Text('No classes today 🎉',
-                                style: AppTextStyles.bodySmall),
+                                style: context.text.bodySmall),
                           ),
                         ),
                       ).animate(delay: 100.ms).fadeIn()
@@ -168,10 +164,7 @@ class HomeScreen extends StatelessWidget {
                           ).animate(delay: (i * 50).ms).fadeIn(duration: 300.ms).slideX(begin: 0.1),
                         ),
                       ),
-
                     const SizedBox(height: AppSpacing.sectionSpacing),
-
-                    // ─── Due Soon Tasks ───
                     _SectionHeader(
                       title: 'Due Soon',
                       onSeeAll: () => context.go('/tasks'),
@@ -185,7 +178,7 @@ class HomeScreen extends StatelessWidget {
                           child: Padding(
                             padding: const EdgeInsets.all(16),
                             child: Text('No upcoming tasks! ✅',
-                                style: AppTextStyles.bodySmall),
+                                style: context.text.bodySmall),
                           ),
                         ),
                       ).animate(delay: 150.ms).fadeIn()
@@ -197,11 +190,8 @@ class HomeScreen extends StatelessWidget {
                                 .fadeIn(duration: 300.ms)
                                 .slideY(begin: 0.05),
                           )),
-
                     const SizedBox(height: AppSpacing.sectionSpacing),
-
-                    // ─── Quick Actions ───
-                    Text('Quick Actions', style: AppTextStyles.h4)
+                    Text('Quick Actions', style: context.text.h4)
                         .animate(delay: 150.ms)
                         .fadeIn(duration: 300.ms),
                     const SizedBox(height: 12),
@@ -209,15 +199,11 @@ class HomeScreen extends StatelessWidget {
                         .animate(delay: 180.ms)
                         .fadeIn(duration: 300.ms)
                         .slideY(begin: 0.05),
-
                     const SizedBox(height: AppSpacing.sectionSpacing),
-
-                    // ─── Study Streak ───
                     _StudyStreakCard()
                         .animate(delay: 220.ms)
                         .fadeIn(duration: 300.ms)
                         .slideY(begin: 0.05),
-
                     const SizedBox(height: 24),
                   ],
                 ),
@@ -237,32 +223,35 @@ class _QuickStatsRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     final stats = [
       _StatData(
         icon: Icons.assignment_outlined,
         value: vm.dueTodayTasks.length.toString(),
         label: 'Tasks Due',
-        color: AppColors.warning,
+        color: colors.warning,
+        onTap: () => context.go('/tasks'),
       ),
       _StatData(
         icon: Icons.how_to_reg_outlined,
         value: '${vm.overallAttendance.toStringAsFixed(0)}%',
         label: 'Attendance',
-        color: vm.overallAttendance >= 75
-            ? AppColors.success
-            : AppColors.error,
+        color: vm.overallAttendance >= 75 ? colors.success : colors.error,
+        onTap: () => context.push('/attendance'),
       ),
       _StatData(
         icon: Icons.school_outlined,
         value: cgpa.toStringAsFixed(2),
         label: 'CGPA',
-        color: AppColors.info,
+        color: colors.info,
+        onTap: () => context.push('/cgpa'),
       ),
       _StatData(
         icon: Icons.timer_outlined,
         value: '${vm.studyHoursToday.toStringAsFixed(1)}h',
         label: 'Study Today',
-        color: AppColors.accent,
+        color: colors.accent,
+        onTap: () => context.push('/study-timer'),
       ),
     ];
 
@@ -283,12 +272,14 @@ class _StatData {
   final String value;
   final String label;
   final Color color;
+  final VoidCallback? onTap;
 
   const _StatData({
     required this.icon,
     required this.value,
     required this.label,
     required this.color,
+    this.onTap,
   });
 }
 
@@ -298,40 +289,44 @@ class _StatCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BrainUpCard(
-      width: 130,
-      padding: const EdgeInsets.all(12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(6),
-            decoration: BoxDecoration(
-              color: stat.color.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(8),
+    return InkWell(
+      onTap: stat.onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: BrainUpCard(
+        width: 130,
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: stat.color.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(stat.icon, size: 18, color: stat.color),
             ),
-            child: Icon(stat.icon, size: 18, color: stat.color),
-          ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                stat.value,
-                style: AppTextStyles.h4.copyWith(fontSize: 18),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-              Text(
-                stat.label,
-                style: AppTextStyles.labelSmall.copyWith(fontSize: 10),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ],
-          ),
-        ],
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  stat.value,
+                  style: context.text.h4.copyWith(fontSize: 18),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                Text(
+                  stat.label,
+                  style: context.text.labelSmall.copyWith(fontSize: 10),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -360,7 +355,7 @@ class _LectureCard extends StatelessWidget {
             children: [
               Text(
                 '${AppDateUtils.timeFromString(lecture.startTime)} – ${AppDateUtils.timeFromString(lecture.endTime)}',
-                style: AppTextStyles.label
+                style: context.text.label
                     .copyWith(color: subjectColor, fontSize: 12),
               ),
               Expanded(
@@ -368,7 +363,7 @@ class _LectureCard extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(vertical: 6),
                   child: Text(
                     lecture.subject,
-                    style: AppTextStyles.h5,
+                    style: context.text.h5,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -377,11 +372,11 @@ class _LectureCard extends StatelessWidget {
               Row(
                 children: [
                   Icon(Icons.location_on_outlined,
-                      size: 12, color: AppColors.textMuted),
+                      size: 12, color: context.colors.textMuted),
                   const SizedBox(width: 4),
                   Expanded(
                     child: Text('${lecture.room} · ${lecture.teacher}',
-                        style: AppTextStyles.caption,
+                        style: context.text.caption,
                         overflow: TextOverflow.ellipsis),
                   ),
                   const SizedBox(width: 4),
@@ -402,6 +397,7 @@ class _TaskCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     final priorityColor = BrainUpPriorityBadge.colorFromString(task.priority.name);
     return BrainUpCard(
       padding: EdgeInsets.zero,
@@ -434,10 +430,9 @@ class _TaskCard extends StatelessWidget {
                             textAlign: TextAlign.end,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: AppTextStyles.caption.copyWith(
-                              color: task.isOverdue
-                                  ? AppColors.error
-                                  : AppColors.textMuted,
+                            style: context.text.caption.copyWith(
+                              color:
+                                  task.isOverdue ? colors.error : colors.textMuted,
                             ),
                           ),
                         ),
@@ -446,13 +441,12 @@ class _TaskCard extends StatelessWidget {
                     const SizedBox(height: 6),
                     Text(
                       task.title,
-                      style: AppTextStyles.h5.copyWith(
+                      style: context.text.h5.copyWith(
                         decoration: task.isCompleted
                             ? TextDecoration.lineThrough
                             : null,
-                        color: task.isCompleted
-                            ? AppColors.textMuted
-                            : AppColors.textPrimary,
+                        color:
+                            task.isCompleted ? colors.textMuted : colors.textPrimary,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -482,7 +476,7 @@ class _SectionHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Text(title, style: AppTextStyles.h4),
+        Text(title, style: context.text.h4),
         const Spacer(),
         if (onSeeAll != null)
           TextButton(
@@ -491,7 +485,7 @@ class _SectionHeader extends StatelessWidget {
               minimumSize: Size.zero,
               padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
             ),
-            child: Text('See all', style: AppTextStyles.accentText),
+            child: Text('See all', style: context.text.accentText),
           ),
       ],
     );
@@ -501,36 +495,37 @@ class _SectionHeader extends StatelessWidget {
 class _QuickActionsGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     final actions = [
       _ActionData(
           icon: Icons.add_task_rounded,
           label: 'Add Task',
-          color: AppColors.accent,
+          color: colors.accent,
           route: '/tasks'),
       _ActionData(
           icon: Icons.auto_awesome_rounded,
           label: 'AI Tools',
-          color: AppColors.info,
+          color: colors.info,
           route: '/ai'),
       _ActionData(
           icon: Icons.how_to_reg_rounded,
           label: 'Attendance',
-          color: AppColors.warning,
+          color: colors.warning,
           route: '/attendance'),
       _ActionData(
           icon: Icons.timer_rounded,
           label: 'Study Timer',
-          color: AppColors.success,
+          color: colors.success,
           route: '/study-timer'),
       _ActionData(
           icon: Icons.calculate_rounded,
           label: 'CGPA Calc',
-          color: AppColors.error,
+          color: colors.error,
           route: '/cgpa'),
       _ActionData(
           icon: Icons.folder_rounded,
           label: 'Documents',
-          color: AppColors.textSecondary,
+          color: colors.textSecondary,
           route: '/documents'),
     ];
 
@@ -546,7 +541,15 @@ class _QuickActionsGrid extends StatelessWidget {
       itemCount: actions.length,
       itemBuilder: (ctx, i) => _ActionTile(
         data: actions[i],
-        onTap: () => ctx.go(actions[i].route),
+        onTap: () {
+          final route = actions[i].route;
+          // Shell tabs replace location; full-screen tools push so system back works.
+          if (route == '/tasks' || route == '/ai') {
+            ctx.go(route);
+          } else {
+            ctx.push(route);
+          }
+        },
       ).animate(delay: (i * 40).ms).fadeIn(duration: 250.ms).scale(
             begin: const Offset(0.9, 0.9),
             curve: Curves.easeOutBack,
@@ -594,8 +597,8 @@ class _ActionTile extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             data.label,
-            style: AppTextStyles.labelSmall.copyWith(
-              color: AppColors.textPrimary,
+            style: context.text.labelSmall.copyWith(
+              color: context.colors.textPrimary,
               fontWeight: FontWeight.w600,
               fontSize: 11,
             ),
@@ -610,7 +613,6 @@ class _ActionTile extends StatelessWidget {
 }
 
 class _StudyStreakCard extends StatelessWidget {
-  // ── Motivational copy ──────────────────────────────────────────────────────
   static String _motivation(int days) => switch (days) {
         0 => 'Start your streak today! 🌱',
         1 => 'Day 1 done! Come back tomorrow 💪',
@@ -626,7 +628,6 @@ class _StudyStreakCard extends StatelessWidget {
         _ => '$days day streak! Absolute legend 🌟',
       };
 
-  // ── Current badge ──────────────────────────────────────────────────────────
   static ({String icon, String label, Color color}) _badge(int days) {
     if (days < 3) {
       return (icon: '🌱', label: 'Beginner', color: const Color(0xFF4CAF50));
@@ -646,7 +647,6 @@ class _StudyStreakCard extends StatelessWidget {
     return (icon: '🌟', label: 'Transcendent', color: const Color(0xFFFFD700));
   }
 
-  // ── Next milestone ─────────────────────────────────────────────────────────
   static ({String icon, String label, Color color, int target}) _next(
       int days) {
     const milestones = [
@@ -670,9 +670,10 @@ class _StudyStreakCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final homeVm = context.watch<HomeViewModel>();
+    final colors = context.colors;
     final streakDays = homeVm.studyStreakDays;
-    final weekDays = homeVm.weekStudiedDays; // List<bool> Mon–Sun
-    final todayIdx = DateTime.now().weekday - 1; // 0=Mon … 6=Sun
+    final weekDays = homeVm.weekStudiedDays;
+    final todayIdx = DateTime.now().weekday - 1;
 
     final badge = _badge(streakDays);
     final next = _next(streakDays);
@@ -685,7 +686,6 @@ class _StudyStreakCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ── Header: icon + count + badge ──────────────────────────────────
           Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
@@ -696,20 +696,21 @@ class _StudyStreakCard extends StatelessWidget {
               const SizedBox(width: 10),
               Text(
                 streakDays == 0 ? 'No streak yet' : '$streakDays Day Streak',
-                style: AppTextStyles.h4,
+                style: context.text.h4,
               ),
               const Spacer(),
               Container(
                 padding:
                     const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                 decoration: BoxDecoration(
-                  color: badge.color.withOpacity(0.14),
+                  color: badge.color.withValues(alpha: 0.14),
                   borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: badge.color.withOpacity(0.4)),
+                  border:
+                      Border.all(color: badge.color.withValues(alpha: 0.4)),
                 ),
                 child: Text(
                   '${badge.icon} ${badge.label}',
-                  style: AppTextStyles.caption.copyWith(
+                  style: context.text.caption.copyWith(
                     color: badge.color,
                     fontWeight: FontWeight.w700,
                   ),
@@ -718,15 +719,12 @@ class _StudyStreakCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 4),
-          // ── Motivational subtitle ─────────────────────────────────────────
           Text(
             _motivation(streakDays),
             style:
-                AppTextStyles.caption.copyWith(color: AppColors.textSecondary),
+                context.text.caption.copyWith(color: colors.textSecondary),
           ),
           const SizedBox(height: 18),
-
-          // ── Weekly dots (actual studied days) ─────────────────────────────
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: List.generate(7, (i) {
@@ -737,9 +735,8 @@ class _StudyStreakCard extends StatelessWidget {
                 children: [
                   Text(
                     labels[i],
-                    style: AppTextStyles.labelSmall.copyWith(
-                      color:
-                          isToday ? AppColors.accent : AppColors.textMuted,
+                    style: context.text.labelSmall.copyWith(
+                      color: isToday ? colors.accent : colors.textMuted,
                       fontWeight:
                           isToday ? FontWeight.w700 : FontWeight.normal,
                     ),
@@ -758,19 +755,19 @@ class _StudyStreakCard extends StatelessWidget {
                               end: Alignment.bottomRight,
                             )
                           : null,
-                      color: isStudied ? null : AppColors.surfaceElevated,
+                      color: isStudied ? null : colors.surfaceElevated,
                       border: isToday
                           ? Border.all(
                               color: isStudied
-                                  ? Colors.white.withOpacity(0.45)
-                                  : AppColors.accent,
+                                  ? Colors.white.withValues(alpha: 0.45)
+                                  : colors.accent,
                               width: 2,
                             )
                           : null,
                       boxShadow: isStudied
                           ? [
                               BoxShadow(
-                                color: AppColors.accent.withOpacity(0.3),
+                                color: colors.accent.withValues(alpha: 0.3),
                                 blurRadius: 8,
                                 offset: const Offset(0, 3),
                               )
@@ -786,7 +783,7 @@ class _StudyStreakCard extends StatelessWidget {
                                   width: 6,
                                   height: 6,
                                   decoration: BoxDecoration(
-                                    color: AppColors.accent,
+                                    color: colors.accent,
                                     shape: BoxShape.circle,
                                   ),
                                 )
@@ -797,8 +794,6 @@ class _StudyStreakCard extends StatelessWidget {
               );
             }),
           ),
-
-          // ── Milestone progress bar ────────────────────────────────────────
           const SizedBox(height: 16),
           if (!reached30) ...[
             Row(
@@ -806,15 +801,15 @@ class _StudyStreakCard extends StatelessWidget {
               children: [
                 Text(
                   '${next.icon} Next: ${next.label}',
-                  style: AppTextStyles.caption.copyWith(
+                  style: context.text.caption.copyWith(
                     color: next.color,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
                 Text(
                   daysLeft == 1 ? '1 day to go!' : '$daysLeft days to go',
-                  style: AppTextStyles.caption
-                      .copyWith(color: AppColors.textMuted),
+                  style: context.text.caption
+                      .copyWith(color: colors.textMuted),
                 ),
               ],
             ),
@@ -828,7 +823,7 @@ class _StudyStreakCard extends StatelessWidget {
                 builder: (_, val, __) => LinearProgressIndicator(
                   value: val,
                   minHeight: 7,
-                  backgroundColor: AppColors.surfaceElevated,
+                  backgroundColor: colors.surfaceElevated,
                   valueColor: AlwaysStoppedAnimation<Color>(next.color),
                 ),
               ),
@@ -837,7 +832,7 @@ class _StudyStreakCard extends StatelessWidget {
             Center(
               child: Text(
                 '🌟 Maximum milestone reached! You\'re a legend.',
-                style: AppTextStyles.caption.copyWith(
+                style: context.text.caption.copyWith(
                   color: const Color(0xFFFFD700),
                   fontWeight: FontWeight.w600,
                 ),
@@ -848,8 +843,6 @@ class _StudyStreakCard extends StatelessWidget {
     );
   }
 }
-
-// ─── Notifications Sheet ──────────────────────────────────────────────────────
 
 class _NotificationsSheet extends StatelessWidget {
   final List<TaskModel> overdue;
@@ -862,6 +855,7 @@ class _NotificationsSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     final isEmpty = overdue.isEmpty && dueToday.isEmpty;
     return DraggableScrollableSheet(
       initialChildSize: 0.55,
@@ -869,19 +863,18 @@ class _NotificationsSheet extends StatelessWidget {
       maxChildSize: 0.92,
       expand: false,
       builder: (_, ctrl) => Container(
-        decoration: const BoxDecoration(
-          color: AppColors.surfaceCard,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        decoration: BoxDecoration(
+          color: colors.surfaceCard,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
         ),
         child: Column(
           children: [
-            // Handle
             Container(
               width: 40,
               height: 4,
               margin: const EdgeInsets.symmetric(vertical: 12),
               decoration: BoxDecoration(
-                color: AppColors.surfaceBorder,
+                color: colors.surfaceBorder,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -889,27 +882,27 @@ class _NotificationsSheet extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
               child: Row(
                 children: [
-                  const Icon(Icons.notifications_outlined,
-                      color: AppColors.accent, size: 22),
+                  Icon(Icons.notifications_outlined,
+                      color: colors.accent, size: 22),
                   const SizedBox(width: 10),
-                  Text('Notifications', style: AppTextStyles.h4),
+                  Text('Notifications', style: context.text.h4),
                 ],
               ),
             ),
-            const Divider(height: 1, color: AppColors.surfaceBorder),
+            Divider(height: 1, color: colors.surfaceBorder),
             Expanded(
               child: isEmpty
                   ? Center(
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Icon(Icons.check_circle_outline_rounded,
-                              size: 52, color: AppColors.success),
+                          Icon(Icons.check_circle_outline_rounded,
+                              size: 52, color: colors.success),
                           const SizedBox(height: 12),
                           Text(
                             "You're all caught up! 🎉",
-                            style: AppTextStyles.h5
-                                .copyWith(color: AppColors.textSecondary),
+                            style: context.text.h5
+                                .copyWith(color: colors.textSecondary),
                           ),
                         ],
                       ),
@@ -922,12 +915,12 @@ class _NotificationsSheet extends StatelessWidget {
                           _SheetSectionHeader(
                             label: 'Due Today',
                             count: dueToday.length,
-                            color: AppColors.accent,
+                            color: colors.accent,
                           ),
                           const SizedBox(height: 8),
                           ...dueToday.map((t) => _NotifTaskTile(
                                 task: t,
-                                highlightColor: AppColors.accent,
+                                highlightColor: colors.accent,
                               )),
                           const SizedBox(height: 16),
                         ],
@@ -935,12 +928,12 @@ class _NotificationsSheet extends StatelessWidget {
                           _SheetSectionHeader(
                             label: 'Overdue',
                             count: overdue.length,
-                            color: AppColors.error,
+                            color: colors.error,
                           ),
                           const SizedBox(height: 8),
                           ...overdue.map((t) => _NotifTaskTile(
                                 task: t,
-                                highlightColor: AppColors.error,
+                                highlightColor: colors.error,
                               )),
                         ],
                       ],
@@ -970,7 +963,7 @@ class _SheetSectionHeader extends StatelessWidget {
       children: [
         Text(
           label.toUpperCase(),
-          style: AppTextStyles.label.copyWith(color: color, letterSpacing: 1),
+          style: context.text.label.copyWith(color: color, letterSpacing: 1),
         ),
         const SizedBox(width: 8),
         Container(
@@ -981,7 +974,7 @@ class _SheetSectionHeader extends StatelessWidget {
           ),
           child: Text(
             '$count',
-            style: AppTextStyles.caption.copyWith(color: color),
+            style: context.text.caption.copyWith(color: color),
           ),
         ),
       ],
@@ -1017,7 +1010,7 @@ class _NotifTaskTile extends StatelessWidget {
                     children: [
                       Text(
                         task.subject,
-                        style: AppTextStyles.labelSmall.copyWith(
+                        style: context.text.labelSmall.copyWith(
                           color: highlightColor,
                           fontSize: 11,
                         ),
@@ -1027,14 +1020,14 @@ class _NotifTaskTile extends StatelessWidget {
                       const SizedBox(height: 3),
                       Text(
                         task.title,
-                        style: AppTextStyles.h5,
+                        style: context.text.h5,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
                       const SizedBox(height: 2),
                       Text(
                         AppDateUtils.relativeDate(task.dueDate),
-                        style: AppTextStyles.caption.copyWith(
+                        style: context.text.caption.copyWith(
                           color: highlightColor,
                         ),
                       ),
@@ -1055,21 +1048,20 @@ class _NotifTaskTile extends StatelessWidget {
   }
 }
 
-// ─── In Progress Card ─────────────────────────────────────────────────────────
-
 class _InProgressCard extends StatelessWidget {
   final LectureModel lecture;
   const _InProgressCard({required this.lecture});
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
-        color: AppColors.error.withValues(alpha: 0.08),
+        color: colors.error.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: AppColors.error.withValues(alpha: 0.30),
+          color: colors.error.withValues(alpha: 0.30),
         ),
       ),
       child: Row(
@@ -1077,8 +1069,8 @@ class _InProgressCard extends StatelessWidget {
           Container(
             width: 8,
             height: 8,
-            decoration: const BoxDecoration(
-              color: AppColors.error,
+            decoration: BoxDecoration(
+              color: colors.error,
               shape: BoxShape.circle,
             ),
           )
@@ -1090,14 +1082,14 @@ class _InProgressCard extends StatelessWidget {
           Expanded(
             child: Text(
               'In Progress: ${lecture.subject}',
-              style: AppTextStyles.body.copyWith(
-                color: AppColors.error,
+              style: context.text.body.copyWith(
+                color: colors.error,
                 fontWeight: FontWeight.w600,
               ),
               overflow: TextOverflow.ellipsis,
             ),
           ),
-          Text(lecture.room, style: AppTextStyles.caption),
+          Text(lecture.room, style: context.text.caption),
         ],
       ),
     );

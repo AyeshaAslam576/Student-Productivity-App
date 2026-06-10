@@ -6,8 +6,8 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:go_router/go_router.dart';
 import 'package:percent_indicator/percent_indicator.dart';
 import 'package:provider/provider.dart';
-import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_text_styles.dart';
+import '../../../core/navigation/back_navigation.dart';
+import '../../../core/theme/app_palette.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/widgets/brainup_card.dart';
 import '../../../core/utils/date_utils.dart';
@@ -40,7 +40,7 @@ class _StudyTimerScreenState extends State<StudyTimerScreen> {
     }
 
     return Scaffold(
-      backgroundColor: AppColors.surface,
+      backgroundColor: context.colors.surface,
       body: Stack(
         children: [
           // Background glow
@@ -67,18 +67,9 @@ class _StudyTimerScreenState extends State<StudyTimerScreen> {
                   padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
                   child: Row(
                     children: [
-                      IconButton(
-                        onPressed: () {
-                          if (context.canPop()) {
-                            context.pop();
-                          } else {
-                            context.go('/home');
-                          }
-                        },
-                        icon: const Icon(Icons.arrow_back_rounded,
-                            color: AppColors.textPrimary),
-                      ),
-                      Text('Study Timer', style: AppTextStyles.h3),
+                      brainUpBackButton(context,
+                          iconColor: context.colors.textPrimary),
+                      Text('Study Timer', style: context.text.h3),
                       const Spacer(),
                       IconButton(
                         onPressed: () {
@@ -88,13 +79,13 @@ class _StudyTimerScreenState extends State<StudyTimerScreen> {
                             ),
                           );
                         },
-                        icon: const Icon(Icons.fullscreen_rounded,
-                            color: AppColors.textSecondary),
+                        icon: Icon(Icons.fullscreen_rounded,
+                            color: context.colors.textSecondary),
                       ),
                       IconButton(
                         onPressed: () => _showSettings(context, vm),
-                        icon: const Icon(Icons.tune_rounded,
-                            color: AppColors.textSecondary),
+                        icon: Icon(Icons.tune_rounded,
+                            color: context.colors.textSecondary),
                       ),
                     ],
                   ),
@@ -132,16 +123,16 @@ class _StudyTimerScreenState extends State<StudyTimerScreen> {
                               key: ValueKey(vm.aiCoachMessage),
                               gradient: LinearGradient(
                                 colors: [
-                                  AppColors.accent.withOpacity(0.06),
-                                  AppColors.surfaceCard,
+                                  context.colors.accent.withOpacity(0.06),
+                                  context.colors.surfaceCard,
                                 ],
                               ),
                               child: Row(
                                 children: [
                                   Container(
                                     padding: const EdgeInsets.all(8),
-                                    decoration: const BoxDecoration(
-                                      gradient: AppColors.accentGradient,
+                                    decoration: BoxDecoration(
+                                      gradient: context.colors.accentGradient,
                                       shape: BoxShape.circle,
                                     ),
                                     child: const Icon(
@@ -154,7 +145,7 @@ class _StudyTimerScreenState extends State<StudyTimerScreen> {
                                   Expanded(
                                     child: Text(
                                       vm.aiCoachMessage!,
-                                      style: AppTextStyles.body
+                                      style: context.text.body
                                           .copyWith(height: 1.5),
                                     ),
                                   ),
@@ -173,7 +164,7 @@ class _StudyTimerScreenState extends State<StudyTimerScreen> {
                           Align(
                             alignment: Alignment.centerLeft,
                             child: Text('Recent Sessions',
-                                style: AppTextStyles.h4),
+                                style: context.text.h4),
                           ),
                           const SizedBox(height: 12),
                           ...vm.sessionHistory.take(5).map((s) => Padding(
@@ -186,12 +177,13 @@ class _StudyTimerScreenState extends State<StudyTimerScreen> {
                                       Container(
                                         padding: const EdgeInsets.all(6),
                                         decoration: BoxDecoration(
-                                          color: AppColors.success
+                                          color: context.colors.success
                                               .withOpacity(0.12),
                                           shape: BoxShape.circle,
                                         ),
-                                        child: const Icon(Icons.check_rounded,
-                                            size: 14, color: AppColors.success),
+                                        child: Icon(Icons.check_rounded,
+                                            size: 14,
+                                            color: context.colors.success),
                                       ),
                                       const SizedBox(width: 12),
                                       Expanded(
@@ -200,19 +192,19 @@ class _StudyTimerScreenState extends State<StudyTimerScreen> {
                                               CrossAxisAlignment.start,
                                           children: [
                                             Text(s.subject,
-                                                style: AppTextStyles.body),
+                                                style: context.text.body),
                                             Text(
                                                 AppDateUtils.formatDateTime(
                                                     s.completedAt),
-                                                style: AppTextStyles.caption),
+                                                style: context.text.caption),
                                           ],
                                         ),
                                       ),
                                       Text(
                                         AppDateUtils.formatDuration(Duration(
                                             seconds: s.durationSeconds)),
-                                        style: AppTextStyles.label
-                                            .copyWith(color: AppColors.accent),
+                                        style: context.text.label.copyWith(
+                                            color: context.colors.accent),
                                       ),
                                     ],
                                   ),
@@ -233,9 +225,9 @@ class _StudyTimerScreenState extends State<StudyTimerScreen> {
   }
 
   Color _phaseColor(TimerPhase phase) => switch (phase) {
-        TimerPhase.focus => AppColors.accent,
-        TimerPhase.shortBreak => AppColors.success,
-        TimerPhase.longBreak => AppColors.info,
+        TimerPhase.focus => context.colors.accent,
+        TimerPhase.shortBreak => context.colors.success,
+        TimerPhase.longBreak => context.colors.info,
       };
 
   void _showSettings(BuildContext context, TimerViewModel vm) {
@@ -260,6 +252,7 @@ class _SubjectSelector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: Row(
@@ -274,21 +267,17 @@ class _SubjectSelector extends StatelessWidget {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                 decoration: BoxDecoration(
-                  color: selected
-                      ? AppColors.accentSoft
-                      : AppColors.surfaceElevated,
+                  color: selected ? colors.accentSoft : colors.surfaceElevated,
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(
-                    color:
-                        selected ? AppColors.accent : AppColors.surfaceBorder,
+                    color: selected ? colors.accent : colors.surfaceBorder,
                     width: selected ? 1 : 0.5,
                   ),
                 ),
                 child: Text(
                   s,
-                  style: AppTextStyles.labelSmall.copyWith(
-                    color:
-                        selected ? AppColors.accent : AppColors.textSecondary,
+                  style: context.text.labelSmall.copyWith(
+                    color: selected ? colors.accent : colors.textSecondary,
                     fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
                   ),
                 ),
@@ -313,6 +302,7 @@ class _AmbientSoundRow extends StatelessWidget {
         scrollDirection: Axis.horizontal,
         itemCount: vm.ambientSounds.length,
         itemBuilder: (context, index) {
+          final colors = context.colors;
           final sound = vm.ambientSounds[index];
           final selected = vm.selectedSound == index;
           return Padding(
@@ -324,13 +314,10 @@ class _AmbientSoundRow extends StatelessWidget {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 decoration: BoxDecoration(
-                  color: selected
-                      ? AppColors.accentSoft
-                      : AppColors.surfaceElevated,
+                  color: selected ? colors.accentSoft : colors.surfaceElevated,
                   borderRadius: BorderRadius.circular(999),
                   border: Border.all(
-                    color:
-                        selected ? AppColors.accent : AppColors.surfaceBorder,
+                    color: selected ? colors.accent : colors.surfaceBorder,
                     width: selected ? 1 : 0.6,
                   ),
                 ),
@@ -341,10 +328,8 @@ class _AmbientSoundRow extends StatelessWidget {
                     const SizedBox(width: 6),
                     Text(
                       sound['label'] ?? '',
-                      style: AppTextStyles.labelSmall.copyWith(
-                        color: selected
-                            ? AppColors.accent
-                            : AppColors.textSecondary,
+                      style: context.text.labelSmall.copyWith(
+                        color: selected ? colors.accent : colors.textSecondary,
                       ),
                     ),
                   ],
@@ -366,18 +351,19 @@ class _StudyStatsSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     if (vm.isLoadingStats && vm.weeklyMinutes.isEmpty) {
       return BrainUpCard(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('This Week', style: AppTextStyles.h4),
+            Text('This Week', style: context.text.h4),
             const SizedBox(height: 16),
             const LinearProgressIndicator(minHeight: 2),
             const SizedBox(height: 12),
             Text(
               'Loading your weekly study insights...',
-              style: AppTextStyles.bodySmall,
+              style: context.text.bodySmall,
             ),
           ],
         ),
@@ -389,9 +375,9 @@ class _StudyStatsSection extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('This Week', style: AppTextStyles.h4),
+            Text('This Week', style: context.text.h4),
             const SizedBox(height: 12),
-            Text(vm.statsError!, style: AppTextStyles.bodySmall),
+            Text(vm.statsError!, style: context.text.bodySmall),
             const SizedBox(height: 12),
             Align(
               alignment: Alignment.centerLeft,
@@ -419,15 +405,15 @@ class _StudyStatsSection extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('This Week', style: AppTextStyles.h4),
+          Text('This Week', style: context.text.h4),
           if (vm.streakDays > 0) ...[
             const SizedBox(height: 12),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
-                color: AppColors.warning.withOpacity(0.12),
+                color: colors.warning.withOpacity(0.12),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppColors.warning.withOpacity(0.25)),
+                border: Border.all(color: colors.warning.withOpacity(0.25)),
               ),
               child: Row(
                 children: [
@@ -435,8 +421,7 @@ class _StudyStatsSection extends StatelessWidget {
                   const SizedBox(width: 8),
                   Text(
                     '${vm.streakDays} day streak',
-                    style:
-                        AppTextStyles.label.copyWith(color: AppColors.warning),
+                    style: context.text.label.copyWith(color: colors.warning),
                   ),
                 ],
               ),
@@ -454,7 +439,7 @@ class _StudyStatsSection extends StatelessWidget {
                   drawVerticalLine: false,
                   horizontalInterval: 60,
                   getDrawingHorizontalLine: (_) => FlLine(
-                      color: AppColors.surfaceBorder.withOpacity(0.3),
+                      color: colors.surfaceBorder.withOpacity(0.3),
                       strokeWidth: 1),
                 ),
                 borderData: FlBorderData(show: false),
@@ -471,7 +456,7 @@ class _StudyStatsSection extends StatelessWidget {
                       getTitlesWidget: (value, meta) {
                         return Text(
                           '${(value ~/ 60)}h',
-                          style: AppTextStyles.caption,
+                          style: context.text.caption,
                         );
                       },
                     ),
@@ -484,7 +469,8 @@ class _StudyStatsSection extends StatelessWidget {
                         if (idx < 0 || idx > 6) return const SizedBox.shrink();
                         return Padding(
                           padding: const EdgeInsets.only(top: 8),
-                          child: Text(_days[idx], style: AppTextStyles.caption),
+                          child:
+                              Text(_days[idx], style: context.text.caption),
                         );
                       },
                     ),
@@ -500,12 +486,12 @@ class _StudyStatsSection extends StatelessWidget {
                         width: 16,
                         borderRadius: BorderRadius.circular(8),
                         gradient: isToday
-                            ? const LinearGradient(
-                                colors: [AppColors.warning, AppColors.accent],
+                            ? LinearGradient(
+                                colors: [colors.warning, colors.accent],
                                 begin: Alignment.bottomCenter,
                                 end: Alignment.topCenter,
                               )
-                            : AppColors.accentGradient,
+                            : colors.accentGradient,
                       ),
                     ],
                   );
@@ -516,15 +502,15 @@ class _StudyStatsSection extends StatelessWidget {
           const SizedBox(height: 12),
           Text(
             'Total this week: ${totalHours} hours ${remainingMin} min',
-            style: AppTextStyles.body.copyWith(
-              color: AppColors.accent,
+            style: context.text.body.copyWith(
+              color: colors.accent,
               fontWeight: FontWeight.w600,
             ),
           ),
           const SizedBox(height: 4),
           Text(
             'Most studied subject: ${vm.mostStudiedSubjectThisWeek}',
-            style: AppTextStyles.bodySmall,
+            style: context.text.bodySmall,
           ),
         ],
       ),
@@ -536,14 +522,15 @@ class _CircularTimer extends StatelessWidget {
   final TimerViewModel vm;
   const _CircularTimer({required this.vm});
 
-  Color get _phaseColor => switch (vm.phase) {
-        TimerPhase.focus => AppColors.accent,
-        TimerPhase.shortBreak => AppColors.success,
-        TimerPhase.longBreak => AppColors.info,
+  Color _phaseColor(BuildContext context) => switch (vm.phase) {
+        TimerPhase.focus => context.colors.accent,
+        TimerPhase.shortBreak => context.colors.success,
+        TimerPhase.longBreak => context.colors.info,
       };
 
   @override
   Widget build(BuildContext context) {
+    final phaseColor = _phaseColor(context);
     return AnimatedContainer(
       duration: const Duration(milliseconds: 500),
       child: CircularPercentIndicator(
@@ -556,28 +543,28 @@ class _CircularTimer extends StatelessWidget {
           children: [
             Text(
               vm.timeDisplay,
-              style: AppTextStyles.monospace.copyWith(fontSize: 42),
+              style: context.text.monospace.copyWith(fontSize: 42),
             ),
             const SizedBox(height: 6),
             AnimatedContainer(
               duration: const Duration(milliseconds: 300),
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
               decoration: BoxDecoration(
-                color: _phaseColor.withOpacity(0.12),
+                color: phaseColor.withOpacity(0.12),
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Text(
                 vm.phaseLabel,
-                style: AppTextStyles.label.copyWith(
-                  color: _phaseColor,
+                style: context.text.label.copyWith(
+                  color: phaseColor,
                   letterSpacing: 1.5,
                 ),
               ),
             ),
           ],
         ),
-        progressColor: _phaseColor,
-        backgroundColor: AppColors.surfaceBorder,
+        progressColor: phaseColor,
+        backgroundColor: context.colors.surfaceBorder,
         circularStrokeCap: CircularStrokeCap.round,
       ),
     );
@@ -590,6 +577,7 @@ class _SessionDots extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: List.generate(4, (i) {
@@ -601,9 +589,9 @@ class _SessionDots extends StatelessWidget {
           height: done ? 12 : 10,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: done ? AppColors.accent : AppColors.surfaceElevated,
+            color: done ? colors.accent : colors.surfaceElevated,
             border: Border.all(
-              color: done ? AppColors.accent : AppColors.surfaceBorder,
+              color: done ? colors.accent : colors.surfaceBorder,
               width: 1,
             ),
           ),
@@ -617,14 +605,16 @@ class _Controls extends StatelessWidget {
   final TimerViewModel vm;
   const _Controls({required this.vm});
 
-  Color get _phaseColor => switch (vm.phase) {
-        TimerPhase.focus => AppColors.accent,
-        TimerPhase.shortBreak => AppColors.success,
-        TimerPhase.longBreak => AppColors.info,
+  Color _phaseColor(BuildContext context) => switch (vm.phase) {
+        TimerPhase.focus => context.colors.accent,
+        TimerPhase.shortBreak => context.colors.success,
+        TimerPhase.longBreak => context.colors.info,
       };
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
+    final phaseColor = _phaseColor(context);
     final isBreak = vm.phase != TimerPhase.focus;
 
     return Column(
@@ -640,12 +630,12 @@ class _Controls extends StatelessWidget {
                   const EdgeInsets.symmetric(horizontal: 26, vertical: 13),
               decoration: BoxDecoration(
                 gradient: LinearGradient(
-                  colors: [_phaseColor, _phaseColor.withOpacity(0.75)],
+                  colors: [phaseColor, phaseColor.withOpacity(0.75)],
                 ),
                 borderRadius: BorderRadius.circular(32),
                 boxShadow: [
                   BoxShadow(
-                    color: _phaseColor.withOpacity(0.35),
+                    color: phaseColor.withOpacity(0.35),
                     blurRadius: 14,
                     offset: const Offset(0, 5),
                   ),
@@ -659,7 +649,7 @@ class _Controls extends StatelessWidget {
                   const SizedBox(width: 8),
                   Text(
                     'Skip Break — Study Now',
-                    style: AppTextStyles.label.copyWith(
+                    style: context.text.label.copyWith(
                       color: Colors.white,
                       fontWeight: FontWeight.w700,
                     ),
@@ -688,7 +678,7 @@ class _Controls extends StatelessWidget {
               icon: Icons.skip_next_rounded,
               onTap: vm.skip,
               size: 48,
-              color: AppColors.textSecondary,
+              color: colors.textSecondary,
             ),
             const SizedBox(width: 16),
             GestureDetector(
@@ -706,14 +696,13 @@ class _Controls extends StatelessWidget {
                             Colors.white.withOpacity(0.08)
                           ],
                         )
-                      : AppColors.accentGradient,
-                  border: isBreak
-                      ? Border.all(color: AppColors.surfaceBorder)
-                      : null,
+                      : colors.accentGradient,
+                  border:
+                      isBreak ? Border.all(color: colors.surfaceBorder) : null,
                 ),
                 child: Icon(
                   vm.isRunning ? Icons.pause_rounded : Icons.play_arrow_rounded,
-                  color: isBreak ? AppColors.textSecondary : Colors.white,
+                  color: isBreak ? colors.textSecondary : Colors.white,
                   size: isBreak ? 28 : 36,
                 ),
               ),
@@ -727,7 +716,7 @@ class _Controls extends StatelessWidget {
               icon: Icons.refresh_rounded,
               onTap: vm.reset,
               size: 48,
-              color: AppColors.textSecondary,
+              color: colors.textSecondary,
             ),
           ],
         ),
@@ -737,8 +726,7 @@ class _Controls extends StatelessWidget {
           const SizedBox(height: 10),
           Text(
             'or keep resting — timer is running',
-            style:
-                AppTextStyles.caption.copyWith(color: AppColors.textMuted),
+            style: context.text.caption.copyWith(color: colors.textMuted),
           ),
         ],
       ],
@@ -766,8 +754,9 @@ class _ControlButton extends StatelessWidget {
         height: size,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          color: AppColors.surfaceElevated,
-          border: Border.all(color: AppColors.surfaceBorder, width: 0.5),
+          color: context.colors.surfaceElevated,
+          border:
+              Border.all(color: context.colors.surfaceBorder, width: 0.5),
         ),
         child: Icon(icon, color: color, size: size * 0.45),
       ),
@@ -798,11 +787,12 @@ class _SettingsSheetState extends State<_SettingsSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return Container(
       padding: const EdgeInsets.fromLTRB(24, 12, 24, 32),
-      decoration: const BoxDecoration(
-        color: AppColors.surfaceCard,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      decoration: BoxDecoration(
+        color: colors.surfaceCard,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -814,11 +804,11 @@ class _SettingsSheetState extends State<_SettingsSheet> {
               height: 4,
               margin: const EdgeInsets.only(bottom: 20),
               decoration: BoxDecoration(
-                  color: AppColors.surfaceBorder,
+                  color: colors.surfaceBorder,
                   borderRadius: BorderRadius.circular(2)),
             ),
           ),
-          Text('Timer Settings', style: AppTextStyles.h4),
+          Text('Timer Settings', style: context.text.h4),
           const SizedBox(height: 20),
           _DurationSetting(
             label: 'Focus Duration',
@@ -847,11 +837,11 @@ class _SettingsSheetState extends State<_SettingsSheet> {
             onChanged: (v) => setState(() => _long = v),
           ),
           const SizedBox(height: 20),
-          Text('Completion Sound', style: AppTextStyles.label),
+          Text('Completion Sound', style: context.text.label),
           const SizedBox(height: 4),
           Text(
             'Plays once when a phase ends. Ambient track stops automatically.',
-            style: AppTextStyles.caption,
+            style: context.text.caption,
           ),
           const SizedBox(height: 10),
           AnimatedBuilder(
@@ -862,6 +852,7 @@ class _SettingsSheetState extends State<_SettingsSheet> {
                 scrollDirection: Axis.horizontal,
                 itemCount: widget.vm.completionSounds.length,
                 itemBuilder: (context, index) {
+                  final innerColors = context.colors;
                   final sound = widget.vm.completionSounds[index];
                   final selected = widget.vm.selectedCompletionSound == index;
                   return Padding(
@@ -874,13 +865,13 @@ class _SettingsSheetState extends State<_SettingsSheet> {
                             horizontal: 12, vertical: 8),
                         decoration: BoxDecoration(
                           color: selected
-                              ? AppColors.accentSoft
-                              : AppColors.surfaceElevated,
+                              ? innerColors.accentSoft
+                              : innerColors.surfaceElevated,
                           borderRadius: BorderRadius.circular(999),
                           border: Border.all(
                             color: selected
-                                ? AppColors.accent
-                                : AppColors.surfaceBorder,
+                                ? innerColors.accent
+                                : innerColors.surfaceBorder,
                             width: selected ? 1 : 0.6,
                           ),
                         ),
@@ -891,10 +882,10 @@ class _SettingsSheetState extends State<_SettingsSheet> {
                             const SizedBox(width: 6),
                             Text(
                               sound['label'] ?? '',
-                              style: AppTextStyles.labelSmall.copyWith(
+                              style: context.text.labelSmall.copyWith(
                                 color: selected
-                                    ? AppColors.accent
-                                    : AppColors.textSecondary,
+                                    ? innerColors.accent
+                                    : innerColors.textSecondary,
                               ),
                             ),
                           ],
@@ -995,7 +986,7 @@ class _FocusModeOverlayState extends State<_FocusModeOverlay>
         }
       },
       child: Scaffold(
-        backgroundColor: AppColors.primary,
+        backgroundColor: context.colors.primary,
         body: AnimatedBuilder(
           animation: Listenable.merge([_glowController, vm]),
           builder: (_, __) {
@@ -1006,8 +997,9 @@ class _FocusModeOverlayState extends State<_FocusModeOverlay>
                     decoration: BoxDecoration(
                       gradient: RadialGradient(
                         colors: [
-                          AppColors.accent.withOpacity(_glowController.value),
-                          AppColors.primary,
+                          context.colors.accent
+                              .withOpacity(_glowController.value),
+                          context.colors.primary,
                         ],
                         radius: 0.85,
                       ),
@@ -1039,13 +1031,13 @@ class _FocusModeOverlayState extends State<_FocusModeOverlay>
                             : vm.phase == TimerPhase.longBreak
                                 ? '☕ Long Break'
                                 : '🧘 Short Break',
-                        style: AppTextStyles.h3.copyWith(color: Colors.white),
+                        style: context.text.h3.copyWith(color: Colors.white),
                       ),
                       if (vm.phase != TimerPhase.focus) ...[
                         const SizedBox(height: 5),
                         Text(
                           'Returning to: ${vm.selectedSubject}',
-                          style: AppTextStyles.caption
+                          style: context.text.caption
                               .copyWith(color: Colors.white54),
                         ),
                       ],
@@ -1066,14 +1058,14 @@ class _FocusModeOverlayState extends State<_FocusModeOverlay>
                           ),
                           child: Text(
                             _overlayBreakTip(),
-                            style: AppTextStyles.caption
+                            style: context.text.caption
                                 .copyWith(color: Colors.white70),
                           ),
                         )
                       else
                         Text(
                           '${vm.sessionsCompleted} session${vm.sessionsCompleted == 1 ? '' : 's'} done',
-                          style: AppTextStyles.caption
+                          style: context.text.caption
                               .copyWith(color: Colors.white38),
                         ),
                       const SizedBox(height: 24),
@@ -1087,11 +1079,12 @@ class _FocusModeOverlayState extends State<_FocusModeOverlay>
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 28, vertical: 14),
                             decoration: BoxDecoration(
-                              color: AppColors.success,
+                              color: context.colors.success,
                               borderRadius: BorderRadius.circular(32),
                               boxShadow: [
                                 BoxShadow(
-                                  color: AppColors.success.withOpacity(0.4),
+                                  color:
+                                      context.colors.success.withOpacity(0.4),
                                   blurRadius: 16,
                                   offset: const Offset(0, 5),
                                 ),
@@ -1105,7 +1098,7 @@ class _FocusModeOverlayState extends State<_FocusModeOverlay>
                                 const SizedBox(width: 8),
                                 Text(
                                   'Study Now',
-                                  style: AppTextStyles.label.copyWith(
+                                  style: context.text.label.copyWith(
                                     color: Colors.white,
                                     fontWeight: FontWeight.w700,
                                   ),
@@ -1141,7 +1134,7 @@ class _FocusModeOverlayState extends State<_FocusModeOverlay>
                         const SizedBox(height: 8),
                         Text(
                           'or keep resting',
-                          style: AppTextStyles.caption
+                          style: context.text.caption
                               .copyWith(color: Colors.white38),
                         ),
                       ] else ...[
@@ -1151,8 +1144,8 @@ class _FocusModeOverlayState extends State<_FocusModeOverlay>
                           child: Container(
                             width: 70,
                             height: 70,
-                            decoration: const BoxDecoration(
-                              gradient: AppColors.accentGradient,
+                            decoration: BoxDecoration(
+                              gradient: context.colors.accentGradient,
                               shape: BoxShape.circle,
                             ),
                             child: Icon(
@@ -1196,9 +1189,10 @@ class _DurationSetting extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return Row(
       children: [
-        Expanded(child: Text(label, style: AppTextStyles.body)),
+        Expanded(child: Text(label, style: context.text.body)),
         Row(
           children: [
             GestureDetector(
@@ -1207,18 +1201,17 @@ class _DurationSetting extends StatelessWidget {
                 width: 32,
                 height: 32,
                 decoration: BoxDecoration(
-                    color: AppColors.surfaceElevated, shape: BoxShape.circle),
+                    color: colors.surfaceElevated, shape: BoxShape.circle),
                 child: Icon(Icons.remove,
                     size: 16,
-                    color:
-                        value > min ? AppColors.accent : AppColors.textMuted),
+                    color: value > min ? colors.accent : colors.textMuted),
               ),
             ),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 14),
               child: Text('$value $suffix',
-                  style: AppTextStyles.body.copyWith(
-                      color: AppColors.accent, fontWeight: FontWeight.w600)),
+                  style: context.text.body.copyWith(
+                      color: colors.accent, fontWeight: FontWeight.w600)),
             ),
             GestureDetector(
               onTap: value < max ? () => onChanged(value + 1) : null,
@@ -1226,11 +1219,10 @@ class _DurationSetting extends StatelessWidget {
                 width: 32,
                 height: 32,
                 decoration: BoxDecoration(
-                    color: AppColors.surfaceElevated, shape: BoxShape.circle),
+                    color: colors.surfaceElevated, shape: BoxShape.circle),
                 child: Icon(Icons.add,
                     size: 16,
-                    color:
-                        value < max ? AppColors.accent : AppColors.textMuted),
+                    color: value < max ? colors.accent : colors.textMuted),
               ),
             ),
           ],

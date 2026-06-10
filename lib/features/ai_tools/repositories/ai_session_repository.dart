@@ -14,8 +14,18 @@ class AiSessionRepository {
   CollectionReference<Map<String, dynamic>> get _sessionsRef =>
       _db.collection('users').doc(userId).collection('ai_sessions');
 
+  List<AiSession> _docsToSessions(
+      Iterable<QueryDocumentSnapshot<Map<String, dynamic>>> docs) {
+    return docs.map((doc) {
+      final data = Map<String, dynamic>.from(doc.data());
+      final id = data['id'] as String?;
+      if (id == null || id.isEmpty) data['id'] = doc.id;
+      return AiSession.fromMap(data);
+    }).toList();
+  }
+
   Stream<List<AiSession>> watchRecentSessions({
-    int limit = 20,
+    int limit = 50,
     SessionType? type,
   }) {
     Query<Map<String, dynamic>> query =
@@ -24,10 +34,21 @@ class AiSessionRepository {
       query = query.where('type', isEqualTo: type.name);
     }
     return query.snapshots().map(
-          (snapshot) => snapshot.docs
-              .map((doc) => AiSession.fromMap(doc.data()))
-              .toList(),
+          (snapshot) => _docsToSessions(snapshot.docs),
         );
+  }
+
+  Future<List<AiSession>> fetchRecentSessions({
+    int limit = 50,
+    SessionType? type,
+  }) async {
+    Query<Map<String, dynamic>> query =
+        _sessionsRef.orderBy('lastAccessedAt', descending: true).limit(limit);
+    if (type != null) {
+      query = query.where('type', isEqualTo: type.name);
+    }
+    final snap = await query.get();
+    return _docsToSessions(snap.docs);
   }
 
   Stream<List<AiSession>> watchFavoriteSessions(SessionType type) {
@@ -36,11 +57,7 @@ class AiSessionRepository {
         .where('isFavorite', isEqualTo: true)
         .orderBy('lastAccessedAt', descending: true)
         .snapshots()
-        .map(
-          (snapshot) => snapshot.docs
-              .map((doc) => AiSession.fromMap(doc.data()))
-              .toList(),
-        );
+        .map((snapshot) => _docsToSessions(snapshot.docs));
   }
 
   Future<AiSession> saveSession(AiSession session) async {

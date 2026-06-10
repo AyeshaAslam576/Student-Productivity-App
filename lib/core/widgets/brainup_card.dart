@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../theme/app_colors.dart';
+import '../theme/app_palette.dart';
 import '../theme/app_spacing.dart';
 
 class BrainUpCard extends StatelessWidget {
@@ -28,21 +28,22 @@ class BrainUpCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     final br = borderRadius ?? BorderRadius.circular(AppSpacing.radiusLg);
     Widget card = Container(
       width: width,
       height: height,
       decoration: BoxDecoration(
-        gradient: gradient ?? AppColors.cardGradient,
+        gradient: gradient ?? colors.cardGradient,
         borderRadius: br,
         border: Border.all(
-          color: borderColor ?? AppColors.surfaceBorder,
+          color: borderColor ?? colors.surfaceBorder,
           width: 0.5,
         ),
         boxShadow: showShadow
             ? [
                 BoxShadow(
-                  color: AppColors.accent.withOpacity(0.05),
+                  color: colors.accent.withValues(alpha: 0.05),
                   blurRadius: 20,
                   offset: const Offset(0, 4),
                 ),
@@ -64,8 +65,8 @@ class BrainUpCard extends StatelessWidget {
         child: InkWell(
           onTap: onTap,
           borderRadius: br,
-          splashColor: AppColors.accent.withOpacity(0.08),
-          highlightColor: AppColors.accent.withOpacity(0.04),
+          splashColor: colors.accent.withValues(alpha: 0.08),
+          highlightColor: colors.accent.withValues(alpha: 0.04),
           child: card,
         ),
       );

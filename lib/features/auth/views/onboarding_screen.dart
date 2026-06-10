@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
-import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_text_styles.dart';
+import '../../../core/theme/app_palette.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/widgets/brainup_button.dart';
+import '../../../core/widgets/brainup_logo.dart';
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
@@ -17,26 +17,29 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   final _controller = PageController();
   int _page = 0;
 
-  final _pages = const [
-    _OnboardingPage(
-      icon: Icons.dashboard_rounded,
-      iconColor: AppColors.accent,
-      title: 'Your academic life,\norganized',
-      body: 'Manage tasks, timetables, and deadlines all in one beautiful place.',
-    ),
-    _OnboardingPage(
-      icon: Icons.auto_awesome_rounded,
-      iconColor: AppColors.info,
-      title: 'AI tools built\nfor students',
-      body: 'Summarize lectures, check grammar, and chat with your AI study assistant.',
-    ),
-    _OnboardingPage(
-      icon: Icons.show_chart_rounded,
-      iconColor: AppColors.success,
-      title: 'Track grades.\nOwn your future.',
-      body: 'Calculate your CGPA, monitor attendance, and stay ahead of every deadline.',
-    ),
-  ];
+  List<_OnboardingPage> _buildPages(BuildContext context) {
+    final colors = context.colors;
+    return [
+      _OnboardingPage(
+        icon: Icons.dashboard_rounded,
+        iconColor: colors.accent,
+        title: 'Your academic life,\norganized',
+        body: 'Manage tasks, timetables, and deadlines all in one beautiful place.',
+      ),
+      _OnboardingPage(
+        icon: Icons.auto_awesome_rounded,
+        iconColor: colors.info,
+        title: 'AI tools built\nfor students',
+        body: 'Summarize lectures, check grammar, and chat with your AI study assistant.',
+      ),
+      _OnboardingPage(
+        icon: Icons.show_chart_rounded,
+        iconColor: colors.success,
+        title: 'Track grades.\nOwn your future.',
+        body: 'Calculate your CGPA, monitor attendance, and stay ahead of every deadline.',
+      ),
+    ];
+  }
 
   @override
   void dispose() {
@@ -44,8 +47,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     super.dispose();
   }
 
-  void _next() {
-    if (_page < _pages.length - 1) {
+  void _next(int pagesLength) {
+    if (_page < pagesLength - 1) {
       _controller.nextPage(
         duration: const Duration(milliseconds: 400),
         curve: Curves.easeInOutCubic,
@@ -57,11 +60,12 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
+    final pages = _buildPages(context);
     return Scaffold(
-      backgroundColor: AppColors.surface,
+      backgroundColor: colors.surface,
       body: Stack(
         children: [
-          // Background radial glow
           Positioned(
             top: -60,
             right: -60,
@@ -71,7 +75,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 gradient: RadialGradient(colors: [
-                  AppColors.accent.withValues(alpha: 0.05),
+                  colors.accent.withValues(alpha: 0.05),
                   Colors.transparent,
                 ]),
               ),
@@ -80,12 +84,16 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           SafeArea(
             child: Column(
               children: [
+                const Padding(
+                  padding: EdgeInsets.only(top: 16),
+                  child: BrainUpLogo(size: 56),
+                ),
                 Expanded(
                   child: PageView.builder(
                     controller: _controller,
                     onPageChanged: (i) => setState(() => _page = i),
-                    itemCount: _pages.length,
-                    itemBuilder: (_, i) => _pages[i],
+                    itemCount: pages.length,
+                    itemBuilder: (_, i) => pages[i],
                   ),
                 ),
                 Padding(
@@ -93,10 +101,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       AppSpacing.screenPadding, 0, AppSpacing.screenPadding, 40),
                   child: Column(
                     children: [
-                      // Dot indicators
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
-                        children: List.generate(_pages.length, (i) {
+                        children: List.generate(pages.length, (i) {
                           return AnimatedContainer(
                             duration: const Duration(milliseconds: 300),
                             margin: const EdgeInsets.symmetric(horizontal: 4),
@@ -104,8 +111,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                             height: 8,
                             decoration: BoxDecoration(
                               color: i == _page
-                                  ? AppColors.accent
-                                  : AppColors.textMuted,
+                                  ? colors.accent
+                                  : colors.textMuted,
                               borderRadius: BorderRadius.circular(4),
                             ),
                           );
@@ -113,10 +120,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       ),
                       const SizedBox(height: 32),
                       BrainUpButton(
-                        label: _page == _pages.length - 1 ? 'Get Started' : 'Next',
-                        onTap: _next,
+                        label: _page == pages.length - 1 ? 'Get Started' : 'Next',
+                        onTap: () => _next(pages.length),
                         icon: Icon(
-                          _page == _pages.length - 1
+                          _page == pages.length - 1
                               ? Icons.rocket_launch_rounded
                               : Icons.arrow_forward_rounded,
                           color: Colors.white,
@@ -126,7 +133,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       const SizedBox(height: 16),
                       TextButton(
                         onPressed: () => context.go('/login'),
-                        child: Text('Skip', style: AppTextStyles.bodySmall),
+                        child: Text('Skip', style: context.text.bodySmall),
                       ),
                     ],
                   ),
@@ -160,7 +167,6 @@ class _OnboardingPage extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          // Illustration container
           Container(
             width: 200,
             height: 200,
@@ -187,7 +193,7 @@ class _OnboardingPage extends StatelessWidget {
           const SizedBox(height: 48),
           Text(
             title,
-            style: AppTextStyles.h2,
+            style: context.text.h2,
             textAlign: TextAlign.center,
           )
               .animate(delay: 150.ms)
@@ -196,7 +202,7 @@ class _OnboardingPage extends StatelessWidget {
           const SizedBox(height: 16),
           Text(
             body,
-            style: AppTextStyles.bodySmall.copyWith(
+            style: context.text.bodySmall.copyWith(
               fontSize: 15,
               height: 1.6,
             ),

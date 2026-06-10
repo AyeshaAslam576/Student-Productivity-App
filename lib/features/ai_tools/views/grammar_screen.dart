@@ -4,11 +4,12 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
-import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_text_styles.dart';
+import '../../../core/navigation/back_navigation.dart';
+import '../../../core/theme/app_palette.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/widgets/brainup_card.dart';
 import '../../../core/widgets/brainup_button.dart';
+import '../../../core/widgets/brainup_markdown.dart';
 import '../../../core/widgets/brainup_shimmer.dart';
 import '../../documents/services/pdf_service.dart';
 import '../models/ai_session_model.dart';
@@ -25,6 +26,7 @@ class GrammarScreen extends StatefulWidget {
 
 class _GrammarScreenState extends State<GrammarScreen> {
   final _ctrl = TextEditingController();
+  final _inputKey = GlobalKey<InputSelectorState>();
 
   @override
   void initState() {
@@ -41,8 +43,16 @@ class _GrammarScreenState extends State<GrammarScreen> {
     super.dispose();
   }
 
-  bool _validate() {
-    final text = _ctrl.text.trim();
+  String _inputForAnalysis(AiViewModel vm) {
+    if (vm.inputSource == InputSource.uploadedFile &&
+        vm.currentInput.trim().isNotEmpty) {
+      return vm.currentInput.trim();
+    }
+    return _ctrl.text.trim();
+  }
+
+  bool _validate(AiViewModel vm) {
+    final text = _inputForAnalysis(vm);
     String? message;
     if (text.isEmpty) {
       message = 'Please enter or upload text first';
@@ -61,23 +71,30 @@ class _GrammarScreenState extends State<GrammarScreen> {
   }
 
   void _showRecentSessions() {
-    final vm = context.read<AiViewModel>();
-    final sessions = vm.recentSessions
-        .where((s) => s.type == SessionType.grammar)
-        .toList();
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
-      builder: (_) => RecentSessionsSheet(
-        sessions: sessions,
-        onSessionSelected: (session) {
-          vm.loadSession(session);
-          _ctrl.text = session.originalInput;
-          setState(() {});
-        },
-        onSessionDeleted: vm.deleteSession,
-        onSessionFavoriteToggle: vm.toggleSessionFavorite,
+      builder: (_) => ChangeNotifierProvider.value(
+        value: context.read<AiViewModel>(),
+        child: Builder(
+          builder: (sheetCtx) {
+            final vm = sheetCtx.watch<AiViewModel>();
+            final sessions = vm.recentSessions
+                .where((s) => s.type == SessionType.grammar)
+                .toList();
+            return RecentSessionsSheet(
+              sessions: sessions,
+              onSessionSelected: (session) {
+                vm.loadSession(session);
+                _ctrl.text = session.originalInput;
+                setState(() {});
+              },
+              onSessionDeleted: vm.deleteSession,
+              onSessionFavoriteToggle: vm.toggleSessionFavorite,
+            );
+          },
+        ),
       ),
     );
   }
@@ -94,51 +111,48 @@ class _GrammarScreenState extends State<GrammarScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     final vm = context.watch<AiViewModel>();
     final hasSessions = vm.recentSessions.any((s) => s.type == SessionType.grammar);
     return Scaffold(
-      backgroundColor: AppColors.surface,
+      backgroundColor: colors.surface,
       body: SafeArea(
         child: Column(
           children: [
             Container(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-              decoration: const BoxDecoration(
-                color: AppColors.surface,
-                border: Border(bottom: BorderSide(color: AppColors.surfaceBorder, width: 0.5)),
+              decoration: BoxDecoration(
+                color: colors.surface,
+                border: Border(bottom: BorderSide(color: colors.surfaceBorder, width: 0.5)),
               ),
               child: Row(
                 children: [
-                  IconButton(
-                    onPressed: () {
-                      if (context.canPop()) {
-                        context.pop();
-                      } else {
-                        context.go('/home');
-                      }
-                    },
-                    icon: const Icon(Icons.arrow_back_rounded, color: AppColors.textPrimary),
+                  brainUpBackButton(
+                    context,
+                    fallback: brainupAiToolsFallback,
+                    iconColor: colors.textPrimary,
                   ),
-                  const Icon(Icons.spellcheck_rounded, color: AppColors.success, size: 22),
+                  Icon(Icons.spellcheck_rounded, color: colors.success, size: 22),
                   const SizedBox(width: 8),
-                  Text('Grammar Check', style: AppTextStyles.h3),
+                  Text('Grammar Check', style: context.text.h3),
                   const Spacer(),
                   if (hasSessions)
                     IconButton(
                       onPressed: _showRecentSessions,
-                      icon: const Icon(
+                      icon: Icon(
                         Icons.history_rounded,
-                        color: AppColors.textSecondary,
+                        color: colors.textSecondary,
                       ),
                     ),
-                  if (vm.grammarState == AiState.done)
+                    if (vm.grammarState == AiState.done)
                     IconButton(
                       onPressed: () {
                         _ctrl.clear();
+                        _inputKey.currentState?.clearFile();
                         vm.clearGrammar();
                       },
-                      icon: const Icon(Icons.refresh_rounded,
-                          color: AppColors.textSecondary),
+                      icon: Icon(Icons.refresh_rounded,
+                          color: colors.textSecondary),
                       tooltip: 'Reset',
                     ),
                 ],
@@ -151,14 +165,12 @@ class _GrammarScreenState extends State<GrammarScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     InputSelector(
+                      key: _inputKey,
                       hintText: 'Enter text to check grammar...',
                       textCtrl: _ctrl,
                       onFileSelected: (file) async {
                         if (file == null) return;
                         await vm.uploadFile(file);
-                        if (mounted && vm.currentInput.isNotEmpty) {
-                          _ctrl.text = vm.currentInput;
-                        }
                       },
                       onInputChanged: vm.setCurrentInput,
                     ),
@@ -167,11 +179,11 @@ class _GrammarScreenState extends State<GrammarScreen> {
                       label: 'Check Grammar',
                       isLoading: vm.grammarState == AiState.loading,
                       onTap: vm.grammarState == AiState.loading ||
-                              _ctrl.text.trim().isEmpty
+                              _inputForAnalysis(vm).isEmpty
                           ? null
                           : () {
-                              if (_validate()) {
-                                vm.checkGrammar(_ctrl.text.trim());
+                              if (_validate(vm)) {
+                                vm.checkGrammar(_inputForAnalysis(vm));
                               }
                             },
                       icon: const Icon(Icons.spellcheck_rounded, color: Colors.white, size: 18),
@@ -185,10 +197,10 @@ class _GrammarScreenState extends State<GrammarScreen> {
                       Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: AppColors.error.withOpacity(0.1),
+                          color: colors.error.withOpacity(0.1),
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        child: Text(vm.error ?? 'Error occurred', style: AppTextStyles.bodySmall.copyWith(color: AppColors.error)),
+                        child: Text(vm.error ?? 'Error occurred', style: context.text.bodySmall.copyWith(color: colors.error)),
                       ),
                     ],
                     if (vm.grammarState == AiState.done) ...[
@@ -198,7 +210,7 @@ class _GrammarScreenState extends State<GrammarScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Row(children: [
-                              Text('Comparison View', style: AppTextStyles.h5),
+                              Text('Comparison View', style: context.text.h5),
                               const Spacer(),
                               IconButton(
                                 onPressed: () {
@@ -225,17 +237,17 @@ class _GrammarScreenState extends State<GrammarScreen> {
                                 icon: const Icon(Icons.share_rounded, size: 18),
                               ),
                             ]),
-                            const Divider(color: AppColors.surfaceBorder, height: 18),
+                            Divider(color: colors.surfaceBorder, height: 18),
                             Row(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Expanded(
                                   child: _CompareColumn(
                                     title: 'Original',
-                                    titleColor: AppColors.error,
+                                    titleColor: colors.error,
                                     text: vm.grammarOriginal,
-                                    background: AppColors.error.withOpacity(0.06),
-                                    border: AppColors.error.withOpacity(0.2),
+                                    background: colors.error.withOpacity(0.06),
+                                    border: colors.error.withOpacity(0.2),
                                     underline: true,
                                   ),
                                 ),
@@ -243,10 +255,11 @@ class _GrammarScreenState extends State<GrammarScreen> {
                                 Expanded(
                                   child: _CompareColumn(
                                     title: 'Corrected',
-                                    titleColor: AppColors.success,
+                                    titleColor: colors.success,
                                     text: vm.grammarCorrected,
-                                    background: AppColors.success.withOpacity(0.06),
-                                    border: AppColors.success.withOpacity(0.2),
+                                    background: colors.success.withOpacity(0.06),
+                                    border: colors.success.withOpacity(0.2),
+                                    renderMarkdown: true,
                                   ),
                                 ),
                               ],
@@ -263,17 +276,17 @@ class _GrammarScreenState extends State<GrammarScreen> {
                                 Container(
                                   padding: const EdgeInsets.all(8),
                                   decoration: BoxDecoration(
-                                    color: AppColors.success.withOpacity(0.12),
+                                    color: colors.success.withOpacity(0.12),
                                     borderRadius: BorderRadius.circular(8),
                                   ),
-                                  child: const Icon(Icons.check_circle_rounded,
-                                      color: AppColors.success, size: 20),
+                                  child: Icon(Icons.check_circle_rounded,
+                                      color: colors.success, size: 20),
                                 ),
                                 const SizedBox(width: 12),
                                 Text(
                                   'No grammar errors found! Great writing.',
-                                  style: AppTextStyles.bodySmall
-                                      .copyWith(color: AppColors.success),
+                                  style: context.text.bodySmall
+                                      .copyWith(color: colors.success),
                                 ),
                               ],
                             ),
@@ -290,16 +303,16 @@ class _GrammarScreenState extends State<GrammarScreen> {
                                   Container(
                                     padding: const EdgeInsets.all(4),
                                     decoration: BoxDecoration(
-                                      color: AppColors.warning.withOpacity(0.12),
+                                      color: colors.warning.withOpacity(0.12),
                                       borderRadius: BorderRadius.circular(6),
                                     ),
-                                    child: const Icon(Icons.warning_amber_rounded, size: 16, color: AppColors.warning),
+                                    child: Icon(Icons.warning_amber_rounded, size: 16, color: colors.warning),
                                   ),
                                   const SizedBox(width: 8),
-                                  Text('Detected Errors (${vm.grammarErrorDetails.length})', style: AppTextStyles.h5),
+                                  Text('Detected Errors (${vm.grammarErrorDetails.length})', style: context.text.h5),
                                 ],
                               ),
-                              const Divider(color: AppColors.surfaceBorder, height: 16),
+                              Divider(color: colors.surfaceBorder, height: 16),
                               ...vm.grammarErrorDetails.asMap().entries.map((e) => Padding(
                                 padding: const EdgeInsets.only(bottom: 8),
                                 child: Row(
@@ -308,7 +321,7 @@ class _GrammarScreenState extends State<GrammarScreen> {
                                     Container(
                                       margin: const EdgeInsets.only(top: 5),
                                       width: 6, height: 6,
-                                      decoration: const BoxDecoration(color: AppColors.warning, shape: BoxShape.circle),
+                                      decoration: BoxDecoration(color: colors.warning, shape: BoxShape.circle),
                                     ),
                                     const SizedBox(width: 10),
                                     Expanded(
@@ -319,7 +332,7 @@ class _GrammarScreenState extends State<GrammarScreen> {
                                           _ErrorTypeBadge(issue: e.value.issue),
                                           Text(
                                             e.value.issue,
-                                            style: AppTextStyles.bodySmall.copyWith(height: 1.5),
+                                            style: context.text.bodySmall.copyWith(height: 1.5),
                                           ),
                                         ],
                                       ),
@@ -351,6 +364,7 @@ class _CompareColumn extends StatelessWidget {
   final Color background;
   final Color border;
   final bool underline;
+  final bool renderMarkdown;
 
   const _CompareColumn({
     required this.title,
@@ -359,10 +373,12 @@ class _CompareColumn extends StatelessWidget {
     required this.background,
     required this.border,
     this.underline = false,
+    this.renderMarkdown = false,
   });
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return Container(
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
@@ -375,20 +391,26 @@ class _CompareColumn extends StatelessWidget {
         children: [
           Text(
             title,
-            style: AppTextStyles.bodySmall.copyWith(
+            style: context.text.bodySmall.copyWith(
               color: titleColor,
               fontWeight: FontWeight.w700,
             ),
           ),
           const SizedBox(height: 8),
-          Text(
-            text,
-            style: AppTextStyles.bodySmall.copyWith(
-              height: 1.6,
-              decoration: underline ? TextDecoration.underline : null,
-              decorationColor: AppColors.error.withOpacity(0.6),
+          if (renderMarkdown)
+            BrainUpMarkdown(
+              data: text,
+              baseStyle: context.text.bodySmall.copyWith(height: 1.6),
+            )
+          else
+            Text(
+              text,
+              style: context.text.bodySmall.copyWith(
+                height: 1.6,
+                decoration: underline ? TextDecoration.underline : null,
+                decorationColor: colors.error.withOpacity(0.6),
+              ),
             ),
-          ),
         ],
       ),
     );
@@ -402,35 +424,36 @@ class _ErrorTypeBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     final lower = issue.toLowerCase();
-    Color color = AppColors.textSecondary;
+    Color color = colors.textSecondary;
     String label = 'Grammar';
     if (lower.contains('spell')) {
-      color = AppColors.error;
+      color = colors.error;
       label = 'Spelling';
     } else if (lower.contains('tense') ||
         lower.contains('past') ||
         lower.contains('future')) {
-      color = AppColors.info;
+      color = colors.info;
       label = 'Tense Error';
     } else if (lower.contains('article') ||
         lower.contains('a/an') ||
         lower.contains(' the ')) {
-      color = AppColors.accent;
+      color = colors.accent;
       label = 'Article Error';
     } else if (lower.contains('punct') ||
         lower.contains('period') ||
         lower.contains('apostrophe')) {
-      color = AppColors.warning;
+      color = colors.warning;
       label = 'Punctuation';
     } else if (lower.contains('comma')) {
-      color = AppColors.warning;
+      color = colors.warning;
       label = 'Missing Comma';
     } else if (lower.contains('subject') || lower.contains('verb')) {
-      color = AppColors.error;
+      color = colors.error;
       label = 'Subject-Verb';
     } else if (lower.contains('capital') || lower.contains('uppercase')) {
-      color = AppColors.info;
+      color = colors.info;
       label = 'Capitalization';
     }
 
@@ -443,7 +466,7 @@ class _ErrorTypeBadge extends StatelessWidget {
       ),
       child: Text(
         label,
-        style: AppTextStyles.caption.copyWith(color: color),
+        style: context.text.caption.copyWith(color: color),
       ),
     );
   }

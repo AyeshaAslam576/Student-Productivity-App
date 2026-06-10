@@ -1,24 +1,24 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
+import '../../../core/theme/app_palette.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_text_styles.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/widgets/brainup_card.dart';
 import '../../../core/widgets/brainup_shimmer.dart';
 import '../../../core/widgets/brainup_chip.dart';
 import '../../../core/widgets/brainup_badge.dart';
 import '../../../core/widgets/brainup_button.dart';
-import '../../../core/widgets/brainup_text_field.dart';
 import '../../../core/widgets/brainup_empty_state.dart';
 import '../../../core/widgets/brainup_error_state.dart';
 import '../../../core/utils/date_utils.dart';
-import '../../../core/utils/validators.dart';
 import '../models/task_model.dart';
 import '../viewmodels/task_viewmodel.dart';
+import 'add_task_sheet.dart';
+import 'task_detail_screen.dart';
 
 class TasksScreen extends StatelessWidget {
   const TasksScreen({super.key});
@@ -27,7 +27,7 @@ class TasksScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final vm = context.watch<TaskViewModel>();
     return Scaffold(
-      backgroundColor: AppColors.surface,
+      backgroundColor: context.colors.surface,
       body: SafeArea(
         child: Column(
           children: [
@@ -44,7 +44,7 @@ class TasksScreen extends StatelessWidget {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _showAddTaskSheet(context, vm),
-        backgroundColor: AppColors.accent,
+        backgroundColor: context.colors.accent,
         child: const Icon(Icons.add_rounded, color: Colors.white, size: 28),
       ).animate().scale(
             delay: 300.ms,
@@ -55,15 +55,7 @@ class TasksScreen extends StatelessWidget {
   }
 
   void _showAddTaskSheet(BuildContext context, TaskViewModel vm) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) => ChangeNotifierProvider.value(
-        value: vm,
-        child: const AddTaskSheet(),
-      ),
-    );
+    showAddTaskSheet(context, vm);
   }
 }
 
@@ -75,28 +67,28 @@ class _TasksAppBar extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 8, 16, 12),
-      decoration: const BoxDecoration(
-        color: AppColors.surface,
-        border: Border(bottom: BorderSide(color: AppColors.surfaceBorder, width: 0.5)),
+      decoration: BoxDecoration(
+        color: context.colors.surface,
+        border: Border(bottom: BorderSide(color: context.colors.surfaceBorder, width: 0.5)),
       ),
       child: Row(
         children: [
-          Text('Tasks', style: AppTextStyles.h3),
+          Text('Tasks', style: context.text.h3),
           const Spacer(),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
             decoration: BoxDecoration(
-              color: AppColors.accentSoft,
+              color: context.colors.accentSoft,
               borderRadius: BorderRadius.circular(20),
             ),
             child: Text(
               '${vm.filteredTasks.length}',
-              style: AppTextStyles.label.copyWith(color: AppColors.accent),
+              style: context.text.label.copyWith(color: context.colors.accent),
             ),
           ),
           const SizedBox(width: 8),
           IconButton(
-            icon: const Icon(Icons.sort_rounded, color: AppColors.textSecondary),
+            icon: Icon(Icons.sort_rounded, color: context.colors.textSecondary),
             onPressed: () => _showSortSheet(context, vm),
           ),
         ],
@@ -132,7 +124,7 @@ class _FilterRow extends StatelessWidget {
               width: 1,
               height: 28,
               margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-              color: AppColors.surfaceBorder,
+              color: context.colors.surfaceBorder,
             ),
           ...vm.subjects.map((s) => Padding(
                 padding: const EdgeInsets.only(right: 8),
@@ -153,8 +145,8 @@ class _FilterRow extends StatelessWidget {
               ),
               child: Text(
                 'Clear filters',
-                style: AppTextStyles.bodySmall
-                    .copyWith(color: AppColors.accent),
+                style: context.text.bodySmall
+                    .copyWith(color: context.colors.accent),
               ),
             ),
         ],
@@ -205,21 +197,21 @@ class _TaskList extends StatelessWidget {
               child: Row(
                 children: [
                   Text(group,
-                      style: AppTextStyles.label.copyWith(
-                        color: _groupColor(group),
+                      style: context.text.label.copyWith(
+                        color: _groupColor(ctx, group),
                         letterSpacing: 1,
                       )),
                   const SizedBox(width: 8),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                     decoration: BoxDecoration(
-                      color: _groupColor(group).withValues(alpha: 0.12),
+                      color: _groupColor(ctx, group).withValues(alpha: 0.12),
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Text(
                       '${tasks.length}',
-                      style: AppTextStyles.caption
-                          .copyWith(color: _groupColor(group)),
+                      style: context.text.caption
+                          .copyWith(color: _groupColor(ctx, group)),
                     ),
                   ),
                 ],
@@ -241,12 +233,12 @@ class _TaskList extends StatelessWidget {
     );
   }
 
-  Color _groupColor(String group) => switch (group) {
-        'OVERDUE' => AppColors.error,
-        'TODAY' => AppColors.accent,
-        'TOMORROW' => AppColors.info,
-        'COMPLETED' => AppColors.success,
-        _ => AppColors.textSecondary,
+  Color _groupColor(BuildContext context, String group) => switch (group) {
+        'OVERDUE' => context.colors.error,
+        'TODAY' => context.colors.accent,
+        'TOMORROW' => context.colors.info,
+        'COMPLETED' => context.colors.success,
+        _ => context.colors.textSecondary,
       };
 }
 
@@ -262,35 +254,43 @@ class _TaskListItem extends StatelessWidget {
 
     return Slidable(
       key: Key(task.id),
-      endActionPane: ActionPane(
+      startActionPane: ActionPane(
         motion: const DrawerMotion(),
-        extentRatio: 0.45,
+        extentRatio: 0.30,
         children: [
           SlidableAction(
             onPressed: (_) {
               HapticFeedback.mediumImpact();
               vm.completeTask(task.id);
             },
-            backgroundColor: AppColors.success,
+            backgroundColor: context.colors.success,
             foregroundColor: Colors.white,
             icon: Icons.check_circle_rounded,
             label: 'Done',
-            borderRadius: const BorderRadius.horizontal(left: Radius.circular(12)),
+            borderRadius: BorderRadius.circular(12),
           ),
+        ],
+      ),
+      endActionPane: ActionPane(
+        motion: const DrawerMotion(),
+        extentRatio: 0.30,
+        children: [
           SlidableAction(
             onPressed: (_) {
               HapticFeedback.lightImpact();
               _confirmDelete(context, vm, task);
             },
-            backgroundColor: AppColors.error,
+            backgroundColor: context.colors.error,
             foregroundColor: Colors.white,
             icon: Icons.delete_rounded,
             label: 'Delete',
-            borderRadius: const BorderRadius.horizontal(right: Radius.circular(12)),
+            borderRadius: BorderRadius.circular(12),
           ),
         ],
       ),
-      child: BrainUpCard(
+      child: GestureDetector(
+        onTap: () => context.push('/tasks/${task.id}'),
+        child: BrainUpCard(
         padding: EdgeInsets.zero,
         child: ClipRRect(
           borderRadius: BorderRadius.circular(16),
@@ -333,10 +333,10 @@ class _TaskListItem extends StatelessWidget {
                                 textAlign: TextAlign.end,
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
-                                style: AppTextStyles.caption.copyWith(
+                                style: context.text.caption.copyWith(
                                   color: task.isOverdue
-                                      ? AppColors.error
-                                      : AppColors.textMuted,
+                                      ? context.colors.error
+                                      : context.colors.textMuted,
                                 ),
                               ),
                             ),
@@ -345,13 +345,13 @@ class _TaskListItem extends StatelessWidget {
                         const SizedBox(height: 6),
                         Text(
                           task.title,
-                          style: AppTextStyles.h5.copyWith(
+                          style: context.text.h5.copyWith(
                             decoration: task.isCompleted
                                 ? TextDecoration.lineThrough
                                 : null,
                             color: task.isCompleted
-                                ? AppColors.textMuted
-                                : AppColors.textPrimary,
+                                ? context.colors.textMuted
+                                : context.colors.textPrimary,
                           ),
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
@@ -361,9 +361,18 @@ class _TaskListItem extends StatelessWidget {
                           const SizedBox(height: 4),
                           Text(
                             task.description!,
-                            style: AppTextStyles.caption,
+                            style: context.text.caption,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                        if (task.subtasks.isNotEmpty) ...[
+                          const SizedBox(height: 4),
+                          Text(
+                            '${task.subtaskCompletedCount}/${task.subtasks.length} subtasks',
+                            style: context.text.caption.copyWith(
+                              color: context.colors.accent,
+                            ),
                           ),
                         ],
                       ],
@@ -377,7 +386,7 @@ class _TaskListItem extends StatelessWidget {
                     value: task.isCompleted,
                     onChanged: (_) {
                       HapticFeedback.mediumImpact();
-                      if (!task.isCompleted) vm.completeTask(task.id);
+                      vm.toggleTaskCompletion(task.id);
                     },
                   ),
                 ),
@@ -386,331 +395,6 @@ class _TaskListItem extends StatelessWidget {
           ),
         ),
       ),
-    );
-  }
-}
-
-// ─── ADD TASK SHEET ───────────────────────────────────────────────────────────
-
-class AddTaskSheet extends StatefulWidget {
-  const AddTaskSheet({super.key});
-
-  @override
-  State<AddTaskSheet> createState() => _AddTaskSheetState();
-}
-
-class _AddTaskSheetState extends State<AddTaskSheet> {
-  final _formKey = GlobalKey<FormState>();
-  final _titleCtrl = TextEditingController();
-  final _subjectCtrl = TextEditingController();
-  final _descCtrl = TextEditingController();
-  final _subtaskCtrl = TextEditingController();
-  DateTime _dueDate = DateTime.now().add(const Duration(days: 1));
-  String _type = 'Assignment';
-  String _priority = 'Medium';
-  final List<SubTask> _subtasks = [];
-  bool _hasReminder = false;
-  DateTime? _reminderTime;
-
-  final _types = ['Assignment', 'Quiz', 'Project', 'Homework', 'Exam', 'Lab', 'Presentation', 'Other'];
-  final _priorities = ['Low', 'Medium', 'High', 'Critical'];
-
-  @override
-  void dispose() {
-    _titleCtrl.dispose();
-    _subjectCtrl.dispose();
-    _descCtrl.dispose();
-    _subtaskCtrl.dispose();
-    super.dispose();
-  }
-
-  Future<void> _submit() async {
-    if (!_formKey.currentState!.validate()) return;
-    final vm = context.read<TaskViewModel>();
-    final uid = FirebaseAuth.instance.currentUser?.uid ?? '';
-    final notifId = DateTime.now().millisecondsSinceEpoch % 100000;
-    final task = TaskModel(
-      id: '',
-      userId: uid,
-      title: _titleCtrl.text.trim(),
-      subject: _subjectCtrl.text.trim(),
-      type: TaskType.values.firstWhere(
-        (e) => e.name.toLowerCase() == _type.toLowerCase(),
-        orElse: () => TaskType.other,
-      ),
-      priority: TaskPriority.values.firstWhere(
-        (e) => e.name.toLowerCase() == _priority.toLowerCase(),
-        orElse: () => TaskPriority.medium,
-      ),
-      dueDate: _dueDate,
-      status: TaskStatus.pending,
-      description: _descCtrl.text.trim().isEmpty ? null : _descCtrl.text.trim(),
-      createdAt: DateTime.now(),
-      subtasks: _subtasks,
-      hasReminder: _hasReminder,
-      reminderTime: _reminderTime,
-      notificationId: notifId,
-    );
-    final ok = await vm.addTask(task);
-    if (ok && mounted) Navigator.pop(context);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final vm = context.watch<TaskViewModel>();
-    return Container(
-      decoration: const BoxDecoration(
-        color: AppColors.surfaceCard,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      child: DraggableScrollableSheet(
-        initialChildSize: 0.88,
-        maxChildSize: 0.95,
-        minChildSize: 0.5,
-        expand: false,
-        builder: (_, ctrl) => Column(
-          children: [
-            // Handle
-            Container(
-              width: 40,
-              height: 4,
-              margin: const EdgeInsets.symmetric(vertical: 12),
-              decoration: BoxDecoration(
-                color: AppColors.surfaceBorder,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Row(
-                children: [
-                  Text('New Task', style: AppTextStyles.h4),
-                  const Spacer(),
-                  IconButton(
-                    onPressed: () => Navigator.pop(context),
-                    icon: const Icon(Icons.close_rounded,
-                        color: AppColors.textSecondary),
-                  ),
-                ],
-              ),
-            ),
-            Expanded(
-              child: SingleChildScrollView(
-                controller: ctrl,
-                padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
-                child: Form(
-                  key: _formKey,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      BrainUpTextField(
-                        label: 'Task Name',
-                        controller: _titleCtrl,
-                        validator: (v) => AppValidators.required(v, fieldName: 'Task name'),
-                        prefixIcon: const Icon(Icons.task_alt_rounded),
-                        textInputAction: TextInputAction.next,
-                      ),
-                      const SizedBox(height: 14),
-                      BrainUpTextField(
-                        label: 'Subject',
-                        controller: _subjectCtrl,
-                        validator: (v) => AppValidators.required(v, fieldName: 'Subject'),
-                        prefixIcon: const Icon(Icons.book_outlined),
-                        textInputAction: TextInputAction.next,
-                      ),
-                      const SizedBox(height: 18),
-                      Text('Type', style: AppTextStyles.label),
-                      const SizedBox(height: 8),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: _types.map((t) => BrainUpChip(
-                          label: t,
-                          isSelected: _type == t,
-                          onTap: () => setState(() => _type = t),
-                        )).toList(),
-                      ),
-                      const SizedBox(height: 18),
-                      Text('Priority', style: AppTextStyles.label),
-                      const SizedBox(height: 8),
-                      Row(
-                        children: _priorities.map((p) {
-                          final color = switch (p) {
-                            'High' => AppColors.error,
-                            'Medium' => AppColors.warning,
-                            _ => AppColors.success,
-                          };
-                          return Padding(
-                            padding: const EdgeInsets.only(right: 8),
-                            child: BrainUpChip(
-                              label: p,
-                              isSelected: _priority == p,
-                              onTap: () => setState(() => _priority = p),
-                              selectedColor: color,
-                            ),
-                          );
-                        }).toList(),
-                      ),
-                      const SizedBox(height: 18),
-                      Text('Due Date', style: AppTextStyles.label),
-                      const SizedBox(height: 8),
-                      GestureDetector(
-                        onTap: () async {
-                          final picked = await showDatePicker(
-                            context: context,
-                            initialDate: _dueDate,
-                            firstDate: DateTime.now(),
-                            lastDate: DateTime.now().add(const Duration(days: 365)),
-                            builder: (_, child) => Theme(
-                              data: Theme.of(context).copyWith(
-                                colorScheme: Theme.of(context)
-                                    .colorScheme
-                                    .copyWith(primary: AppColors.accent),
-                              ),
-                              child: child!,
-                            ),
-                          );
-                          if (picked != null) {
-                            setState(() => _dueDate = picked);
-                          }
-                        },
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 14),
-                          decoration: BoxDecoration(
-                            color: AppColors.surfaceElevated,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                                color: AppColors.surfaceBorder, width: 0.5),
-                          ),
-                          child: Row(
-                            children: [
-                              const Icon(Icons.calendar_today_outlined,
-                                  size: 18, color: AppColors.accent),
-                              const SizedBox(width: 12),
-                              Text(
-                                AppDateUtils.formatDate(_dueDate),
-                                style: AppTextStyles.body,
-                              ),
-                              const Spacer(),
-                              const Icon(Icons.chevron_right_rounded,
-                                  color: AppColors.textMuted),
-                            ],
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 14),
-                      BrainUpTextField(
-                        label: 'Description (optional)',
-                        controller: _descCtrl,
-                        maxLines: 3,
-                        prefixIcon: const Icon(Icons.notes_rounded),
-                      ),
-                      const SizedBox(height: 18),
-                      // ─── Subtasks ───
-                      Text('Subtasks (optional)', style: AppTextStyles.label),
-                      const SizedBox(height: 8),
-                      ..._subtasks.asMap().entries.map((e) => Padding(
-                        padding: const EdgeInsets.only(bottom: 6),
-                        child: Row(children: [
-                          const Icon(Icons.drag_handle_rounded,
-                              color: AppColors.textMuted, size: 20),
-                          const SizedBox(width: 8),
-                          Expanded(child: Text(e.value.title,
-                              style: AppTextStyles.body)),
-                          IconButton(
-                            icon: const Icon(Icons.close_rounded,
-                                size: 18, color: AppColors.textMuted),
-                            onPressed: () =>
-                                setState(() => _subtasks.removeAt(e.key)),
-                          ),
-                        ]),
-                      )),
-                      Row(children: [
-                        Expanded(child: BrainUpTextField(
-                          label: 'Add subtask...',
-                          controller: _subtaskCtrl,
-                          textInputAction: TextInputAction.done,
-                        )),
-                        const SizedBox(width: 8),
-                        GestureDetector(
-                          onTap: () {
-                            if (_subtaskCtrl.text.trim().isNotEmpty) {
-                              setState(() {
-                                _subtasks.add(SubTask(
-                                  id: DateTime.now()
-                                      .millisecondsSinceEpoch
-                                      .toString(),
-                                  title: _subtaskCtrl.text.trim(),
-                                ));
-                                _subtaskCtrl.clear();
-                              });
-                            }
-                          },
-                          child: Container(
-                            width: 44, height: 44,
-                            decoration: BoxDecoration(
-                              color: AppColors.accent,
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: const Icon(Icons.add_rounded,
-                                color: Colors.white),
-                          ),
-                        ),
-                      ]),
-                      const SizedBox(height: 18),
-                      // ─── Reminder ───
-                      Row(children: [
-                        Text('Reminder', style: AppTextStyles.label),
-                        const Spacer(),
-                        Switch(
-                          value: _hasReminder,
-                          activeThumbColor: AppColors.accent,
-                          activeTrackColor: AppColors.accentSoft,
-                          onChanged: (v) => setState(() {
-                            _hasReminder = v;
-                            if (!v) _reminderTime = null;
-                          }),
-                        ),
-                      ]),
-                      if (_hasReminder) ...[
-                        const SizedBox(height: 8),
-                        Wrap(spacing: 8, runSpacing: 8,
-                          children: [
-                            '1 hour before',
-                            '3 hours before',
-                            '1 day before'
-                          ].map((opt) {
-                            final dur = opt == '1 hour before'
-                                ? const Duration(hours: 1)
-                                : opt == '3 hours before'
-                                    ? const Duration(hours: 3)
-                                    : const Duration(days: 1);
-                            final time = _dueDate.subtract(dur);
-                            return BrainUpChip(
-                              label: opt,
-                              isSelected: _reminderTime == time,
-                              onTap: () =>
-                                  setState(() => _reminderTime = time),
-                            );
-                          }).toList(),
-                        ),
-                      ],
-                      const SizedBox(height: 28),
-                      BrainUpButton(
-                        label: 'Add Task',
-                        onTap: vm.isSaving ? null : _submit,
-                        isLoading: vm.isSaving,
-                        icon: const Icon(Icons.add_task_rounded,
-                            color: Colors.white, size: 18),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }
@@ -736,7 +420,7 @@ class _TaskStatsBanner extends StatelessWidget {
           if (vm.pendingCount > 0)
             _StatChip(
               label: '${vm.pendingCount} Pending',
-              color: AppColors.accent,
+              color: context.colors.accent,
               icon: Icons.pending_actions_rounded,
               onTap: () => vm.setFilter('All'),
             ),
@@ -744,7 +428,7 @@ class _TaskStatsBanner extends StatelessWidget {
             const SizedBox(width: 8),
             _StatChip(
               label: '${vm.overdueCount} Overdue',
-              color: AppColors.error,
+              color: context.colors.error,
               icon: Icons.warning_amber_rounded,
               onTap: () => vm.setFilter('Overdue'),
             ),
@@ -753,7 +437,7 @@ class _TaskStatsBanner extends StatelessWidget {
             const SizedBox(width: 8),
             _StatChip(
               label: '${vm.dueTodayCount} Due Today',
-              color: AppColors.warning,
+              color: context.colors.warning,
               icon: Icons.today_rounded,
               onTap: () => vm.setFilter('Today'),
             ),
@@ -762,7 +446,7 @@ class _TaskStatsBanner extends StatelessWidget {
             const SizedBox(width: 8),
             _StatChip(
               label: '${vm.completedThisWeek} Done',
-              color: AppColors.success,
+              color: context.colors.success,
               icon: Icons.check_circle_rounded,
               onTap: () => vm.setFilter('Completed'),
             ),
@@ -827,9 +511,9 @@ void _showSortSheet(BuildContext context, TaskViewModel vm) {
     backgroundColor: Colors.transparent,
     builder: (_) => Container(
       padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
-      decoration: const BoxDecoration(
-        color: AppColors.surfaceCard,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      decoration: BoxDecoration(
+        color: context.colors.surfaceCard,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -840,13 +524,13 @@ void _showSortSheet(BuildContext context, TaskViewModel vm) {
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: AppColors.surfaceBorder,
+                color: context.colors.surfaceBorder,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
           ),
           const SizedBox(height: 16),
-          Text('Sort By', style: AppTextStyles.h4),
+          Text('Sort By', style: context.text.h4),
           const SizedBox(height: 12),
           ...options.map((opt) {
             final isSelected = vm.sortOrder == opt;
@@ -856,15 +540,15 @@ void _showSortSheet(BuildContext context, TaskViewModel vm) {
                 isSelected
                     ? Icons.radio_button_checked_rounded
                     : Icons.radio_button_off_rounded,
-                color: isSelected ? AppColors.accent : AppColors.textMuted,
+                color: isSelected ? context.colors.accent : context.colors.textMuted,
                 size: 22,
               ),
               title: Text(
                 opt,
-                style: AppTextStyles.body.copyWith(
+                style: context.text.body.copyWith(
                   color: isSelected
-                      ? AppColors.accent
-                      : AppColors.textPrimary,
+                      ? context.colors.accent
+                      : context.colors.textPrimary,
                   fontWeight:
                       isSelected ? FontWeight.w600 : FontWeight.normal,
                 ),
@@ -889,9 +573,9 @@ void _confirmDelete(BuildContext context, TaskViewModel vm, TaskModel task) {
     backgroundColor: Colors.transparent,
     builder: (_) => Container(
       padding: const EdgeInsets.all(24),
-      decoration: const BoxDecoration(
-        color: AppColors.surfaceCard,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      decoration: BoxDecoration(
+        color: context.colors.surfaceCard,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -900,19 +584,19 @@ void _confirmDelete(BuildContext context, TaskViewModel vm, TaskModel task) {
             width: 40,
             height: 4,
             decoration: BoxDecoration(
-              color: AppColors.surfaceBorder,
+              color: context.colors.surfaceBorder,
               borderRadius: BorderRadius.circular(2),
             ),
           ),
           const SizedBox(height: 20),
-          const Icon(Icons.delete_outline_rounded,
-              color: AppColors.error, size: 40),
+          Icon(Icons.delete_outline_rounded,
+              color: context.colors.error, size: 40),
           const SizedBox(height: 12),
-          Text('Delete Task?', style: AppTextStyles.h4),
+          Text('Delete Task?', style: context.text.h4),
           const SizedBox(height: 8),
           Text(task.title,
               style:
-                  AppTextStyles.body.copyWith(color: AppColors.textSecondary),
+                  context.text.body.copyWith(color: context.colors.textSecondary),
               textAlign: TextAlign.center),
           const SizedBox(height: 24),
           Row(children: [
@@ -932,12 +616,12 @@ void _confirmDelete(BuildContext context, TaskViewModel vm, TaskModel task) {
                 child: Container(
                   height: 52,
                   decoration: BoxDecoration(
-                    color: AppColors.error,
+                    color: context.colors.error,
                     borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
                   ),
                   child: Center(
                     child: Text('Delete',
-                        style: AppTextStyles.button
+                        style: context.text.button
                             .copyWith(color: Colors.white)),
                   ),
                 ),

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -46,7 +47,8 @@ class AiViewModel extends ChangeNotifier {
     required this.groqApiKey,
     required AiSessionRepository sessionRepository,
   }) : _sessionRepo = sessionRepository {
-    loadRecentSessions();
+    _listenToRecentSessions();
+    unawaited(_sessionRepo.clearOldSessions().catchError((_) {}));
   }
 
   AiState _summaryState = AiState.idle;
@@ -69,8 +71,12 @@ class AiViewModel extends ChangeNotifier {
   /// Stable ID for the current conversation.
   /// Null = no active session yet (first message will create one).
   String? _activeChatSessionId;
+  DateTime? _activeChatSessionCreatedAt;
+  StreamSubscription<List<AiSession>>? _sessionsSub;
 
   AiSessionRepository get sessionRepository => _sessionRepo;
+  bool get canPersistSessions =>
+      _sessionRepo.userId.isNotEmpty && _sessionRepo.userId != 'guest';
 
   AiState get summaryState => _summaryState;
   AiState get grammarState => _grammarState;
@@ -87,17 +93,40 @@ class AiViewModel extends ChangeNotifier {
   InputSource get inputSource => _inputSource;
   File? get uploadedFile => _uploadedFile;
 
+  void _listenToRecentSessions() {
+    _sessionsSub?.cancel();
+    isLoadingSessions = true;
+    _sessionsSub = _sessionRepo.watchRecentSessions(limit: 50).listen(
+      (sessions) {
+        _recentSessions = sessions;
+        isLoadingSessions = false;
+        notifyListeners();
+      },
+      onError: (e) {
+        _error = e.toString();
+        isLoadingSessions = false;
+        notifyListeners();
+      },
+    );
+  }
+
   Future<void> loadRecentSessions() async {
     isLoadingSessions = true;
     notifyListeners();
     try {
-      _recentSessions = await _sessionRepo.watchRecentSessions(limit: 10).first;
-      await _sessionRepo.clearOldSessions();
+      _recentSessions =
+          await _sessionRepo.fetchRecentSessions(limit: 50);
     } catch (e) {
       _error = e.toString();
     }
     isLoadingSessions = false;
     notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    _sessionsSub?.cancel();
+    super.dispose();
   }
 
   void setInputSource(InputSource source) {
@@ -183,8 +212,11 @@ class AiViewModel extends ChangeNotifier {
 
   Future<void> sendChatMessage(String message) async {
     // Assign a stable session ID the first time a message is sent.
-    _activeChatSessionId ??=
-        DateTime.now().microsecondsSinceEpoch.toString();
+    if (_activeChatSessionId == null) {
+      _activeChatSessionId =
+          DateTime.now().microsecondsSinceEpoch.toString();
+      _activeChatSessionCreatedAt = DateTime.now();
+    }
 
     _chatMessages.add(ChatMessage(
       content: message,
@@ -194,6 +226,8 @@ class AiViewModel extends ChangeNotifier {
     _chatState = AiState.loading;
     notifyListeners();
     try {
+      // Persist immediately so the drawer shows this chat while waiting for AI.
+      await saveChatSession();
       final allMessages = _chatMessages.toList();
       final history = (allMessages.length > 10
               ? allMessages.sublist(allMessages.length - 10)
@@ -294,8 +328,17 @@ class AiViewModel extends ChangeNotifier {
   }
 
   Future<void> saveChatSession() async {
+    if (!canPersistSessions) return;
     if (_chatMessages.isEmpty || _activeChatSessionId == null) return;
+
     final now = DateTime.now();
+    final existingMatches =
+        _recentSessions.where((s) => s.id == _activeChatSessionId);
+    final existing =
+        existingMatches.isEmpty ? null : existingMatches.first;
+    final createdAt = existing?.createdAt ??
+        _activeChatSessionCreatedAt ??
+        now;
 
     // Title = first user message (truncated to 60 chars)
     final firstUserMsg = _chatMessages
@@ -305,22 +348,27 @@ class AiViewModel extends ChangeNotifier {
         ? firstUserMsg.substring(0, 60)
         : firstUserMsg;
 
+    final lastAssistant = _chatMessages.where((m) => !m.isUser).lastOrNull;
+
     final session = AiSession(
       id: _activeChatSessionId!,
       userId: _sessionRepo.userId,
       type: SessionType.chatbot,
       inputSource: 'chat',
-      originalInput: title,           // used as the drawer preview title
-      output: _chatMessages.last.content,
+      originalInput: title,
+      output: lastAssistant?.content ?? '',
       metadata: {
         'messages': _chatMessages.map((m) => m.toMap()).toList(),
       },
-      isFavorite: false,
-      createdAt: now,
+      isFavorite: existing?.isFavorite ?? false,
+      createdAt: createdAt,
       lastAccessedAt: now,
     );
-    await _sessionRepo.saveSession(session);
-    await loadRecentSessions();
+    try {
+      await _sessionRepo.saveSession(session);
+    } catch (e) {
+      _error = 'Could not save chat history: $e';
+    }
   }
 
   Future<void> saveTtsSession({
@@ -352,6 +400,7 @@ class AiViewModel extends ChangeNotifier {
     _chatMessages = session.chatHistory;
     _chatState = AiState.done;
     _activeChatSessionId = session.id;
+    _activeChatSessionCreatedAt = session.createdAt;
     _currentInput = session.originalInput;
     notifyListeners(); // fires while drawer is still open → safe rebuild
     // Background: update timestamp and refresh session list.
@@ -394,9 +443,19 @@ class AiViewModel extends ChangeNotifier {
     await loadRecentSessions();
   }
 
+  void _resetChatUi() {
+    _chatMessages = [];
+    _chatState = AiState.idle;
+    _activeChatSessionId = null;
+    _activeChatSessionCreatedAt = null;
+  }
+
   Future<void> deleteSession(String sessionId) async {
+    final wasActiveChat = _activeChatSessionId == sessionId;
     await _sessionRepo.deleteSession(sessionId);
+    if (wasActiveChat) _resetChatUi();
     await loadRecentSessions();
+    notifyListeners();
   }
 
   Future<void> renameSession(String sessionId, String newTitle) async {
@@ -512,16 +571,26 @@ class AiViewModel extends ChangeNotifier {
     return trimmed.substring(0, 500);
   }
 
-  void clearChat() {
-    _chatMessages = [];
-    _chatState = AiState.idle;
-    _activeChatSessionId = null;   // next message starts a fresh session
+  /// Starts a fresh chat in the UI. Does not delete the previous session from
+  /// history — use [deleteSession] for that.
+  Future<void> clearChat() async {
+    _resetChatUi();
     notifyListeners();
+  }
+
+  /// Clears file/OCR input only (paste text in the UI field is unchanged).
+  void clearUploadedInput() {
+    _uploadedFile = null;
+    if (_inputSource == InputSource.uploadedFile) {
+      _currentInput = '';
+      _inputSource = InputSource.pastedText;
+    }
   }
 
   void clearSummary() {
     _summaryResult = '';
     _summaryState = AiState.idle;
+    clearUploadedInput();
     notifyListeners();
   }
 
@@ -532,6 +601,7 @@ class AiViewModel extends ChangeNotifier {
     _grammarErrorDetails = [];
     _grammarState = AiState.idle;
     _error = null;
+    clearUploadedInput();
     notifyListeners();
   }
 

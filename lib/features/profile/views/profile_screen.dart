@@ -9,11 +9,11 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../core/services/local_storage_service.dart';
 import '../../../core/services/theme_provider.dart';
-import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_text_styles.dart';
+import '../../../core/theme/app_palette.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/widgets/brainup_card.dart';
 import '../../../core/widgets/brainup_button.dart';
+import '../../../core/widgets/brainup_logo.dart';
 import '../../../core/widgets/brainup_text_field.dart';
 import '../../auth/viewmodels/auth_viewmodel.dart';
 import '../../tasks/viewmodels/task_viewmodel.dart';
@@ -62,9 +62,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
       builder: (ctx) => Container(
         padding: EdgeInsets.fromLTRB(
             24, 12, 24, MediaQuery.of(ctx).padding.bottom + 32),
-        decoration: const BoxDecoration(
-          color: AppColors.surfaceCard,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+        decoration: BoxDecoration(
+          color: ctx.colors.surfaceCard,
+          borderRadius:
+              const BorderRadius.vertical(top: Radius.circular(28)),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -75,7 +76,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               height: 4,
               margin: const EdgeInsets.only(bottom: 28),
               decoration: BoxDecoration(
-                color: AppColors.surfaceBorder,
+                color: ctx.colors.surfaceBorder,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -87,14 +88,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 gradient: user?.photoBase64 == null
-                    ? AppColors.accentGradient
+                    ? ctx.colors.accentGradient
                     : null,
                 color: user?.photoBase64 != null
-                    ? AppColors.surfaceBorder
+                    ? ctx.colors.surfaceBorder
                     : null,
                 boxShadow: [
                   BoxShadow(
-                    color: AppColors.accent.withOpacity(0.25),
+                    color: ctx.colors.accent.withOpacity(0.25),
                     blurRadius: 20,
                     offset: const Offset(0, 6),
                   ),
@@ -111,7 +112,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   : Center(
                       child: Text(
                         user?.initials ?? '?',
-                        style: AppTextStyles.h2.copyWith(
+                        style: ctx.text.h2.copyWith(
                           color: Colors.white,
                           fontSize: 38,
                         ),
@@ -119,14 +120,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
             ),
             const SizedBox(height: 12),
-            Text(user?.name ?? 'Profile Photo', style: AppTextStyles.h4),
+            Text(user?.name ?? 'Profile Photo', style: ctx.text.h4),
             const SizedBox(height: 4),
             Text(
               user?.photoBase64 != null
                   ? 'Tap an option below to update your photo'
                   : 'No photo set — add one below',
-              style: AppTextStyles.caption
-                  .copyWith(color: AppColors.textMuted),
+              style: ctx.text.caption.copyWith(color: ctx.colors.textMuted),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 28),
@@ -135,7 +135,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             _PhotoOptionTile(
               icon: Icons.camera_alt_rounded,
               label: 'Take Photo',
-              color: AppColors.accent,
+              color: ctx.colors.accent,
               onTap: () {
                 Navigator.pop(ctx);
                 _pickPhoto(ImageSource.camera);
@@ -145,7 +145,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             _PhotoOptionTile(
               icon: Icons.photo_library_rounded,
               label: 'Choose from Gallery',
-              color: AppColors.accent,
+              color: ctx.colors.accent,
               onTap: () {
                 Navigator.pop(ctx);
                 _pickPhoto(ImageSource.gallery);
@@ -156,7 +156,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               _PhotoOptionTile(
                 icon: Icons.delete_outline_rounded,
                 label: 'Remove Photo',
-                color: AppColors.error,
+                color: ctx.colors.error,
                 onTap: () async {
                   Navigator.pop(ctx);
                   setState(() => _uploadingPhoto = true);
@@ -164,6 +164,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     final profileVm = context.read<ProfileViewModel>();
                     final updated = auth.user!.copyWith(photoBase64: null);
                     await profileVm.updateProfile(updated);
+                    auth.setUser(updated);
                     await auth.reloadUser();
                   } finally {
                     if (mounted) setState(() => _uploadingPhoto = false);
@@ -195,6 +196,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       final profileVm = context.read<ProfileViewModel>();
       final updated = auth.user!.copyWith(photoBase64: base64);
       await profileVm.updateProfile(updated);
+      auth.setUser(updated);
       await auth.reloadUser();
     } finally {
       if (mounted) setState(() => _uploadingPhoto = false);
@@ -208,9 +210,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final cgpaVm = context.watch<CgpaViewModel>();
     final homeVm = context.watch<HomeViewModel>();
     final user = auth.user;
+    final isEmailUser = auth.isEmailPasswordUser;
 
+    final colors = context.colors;
     return Scaffold(
-      backgroundColor: AppColors.surface,
+      backgroundColor: colors.surface,
       body: SafeArea(
         child: ListView(
           children: [
@@ -231,18 +235,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
                             gradient: user?.photoBase64 == null
-                                ? AppColors.accentGradient
+                                ? colors.accentGradient
                                 : null,
                             color: user?.photoBase64 != null
-                                ? AppColors.surfaceCard
+                                ? colors.surfaceCard
                                 : null,
                           ),
                           clipBehavior: Clip.antiAlias,
                           child: _uploadingPhoto
-                              ? const Center(
+                              ? Center(
                                   child: CircularProgressIndicator(
                                     strokeWidth: 2,
-                                    color: AppColors.accent,
+                                    color: colors.accent,
                                   ),
                                 )
                               : user?.photoBase64 != null
@@ -251,12 +255,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                         LocalStorageService.base64ToBytes(
                                             user!.photoBase64!),
                                       ),
+                                      key: ValueKey(user.photoBase64),
                                       fit: BoxFit.cover,
+                                      gaplessPlayback: true,
                                     )
                                   : Center(
                                       child: Text(
                                         user?.initials ?? '?',
-                                        style: AppTextStyles.h2
+                                        style: context.text.h2
                                             .copyWith(color: Colors.white),
                                       ),
                                     ),
@@ -267,10 +273,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           child: Container(
                             padding: const EdgeInsets.all(4),
                             decoration: BoxDecoration(
-                              color: AppColors.accent,
+                              color: colors.accent,
                               shape: BoxShape.circle,
-                              border: Border.all(
-                                  color: AppColors.surface, width: 2),
+                              border:
+                                  Border.all(color: colors.surface, width: 2),
                             ),
                             child: const Icon(Icons.camera_alt_rounded,
                                 color: Colors.white, size: 14),
@@ -281,13 +287,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ).animate().fadeIn(duration: 400.ms).scale(
                       begin: const Offset(0.8, 0.8), curve: Curves.easeOutBack),
                   const SizedBox(height: 14),
-                  Text(user?.name ?? 'Student', style: AppTextStyles.h3)
+                  Text(user?.name ?? 'Student', style: context.text.h3)
                       .animate(delay: 100.ms).fadeIn().slideY(begin: 0.1),
                   const SizedBox(height: 4),
                   Text(user?.university ?? 'University',
-                          style: AppTextStyles.bodySmall)
+                          style: context.text.bodySmall)
                       .animate(delay: 140.ms).fadeIn(),
-                  Text(user?.email ?? '', style: AppTextStyles.caption)
+                  Text(user?.email ?? '', style: context.text.caption)
                       .animate(delay: 160.ms).fadeIn(),
                   const SizedBox(height: 20),
                   // Stats row
@@ -340,17 +346,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           title: 'Edit Profile',
                           onTap: () => _showEditProfileSheet(context),
                         ),
-                        const _Separator(),
-                        _SettingTile(
-                          icon: Icons.lock_outline_rounded,
-                          title: 'Change Password',
-                          onTap: () => _showChangePasswordSheet(context),
-                        ),
+                        if (isEmailUser) ...[
+                          const _Separator(),
+                          _SettingTile(
+                            icon: Icons.lock_outline_rounded,
+                            title: 'Change Password',
+                            onTap: () => _showChangePasswordSheet(context),
+                          ),
+                        ],
                         const _Separator(),
                         _SettingTile(
                           icon: Icons.logout_rounded,
                           title: 'Sign Out',
-                          color: AppColors.error,
+                          color: colors.error,
                           onTap: () => _confirmSignOut(context, auth),
                         ),
                       ],
@@ -370,67 +378,62 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         return Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      const Text(
-                                        'Appearance',
-                                        style: TextStyle(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 2),
-                                      Text(
-                                        modeLabel,
-                                        style: TextStyle(
-                                          fontSize: 13,
-                                          color: Theme.of(context)
-                                              .colorScheme
-                                              .onSurface
-                                              .withOpacity(0.6),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
+                            const Text(
+                              'Appearance',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
                             const SizedBox(height: 12),
-                            SegmentedButton<AppThemeMode>(
-                              segments: const [
-                                ButtonSegment(
-                                  value: AppThemeMode.system,
-                                  icon: Icon(Icons.brightness_auto),
-                                  label: Text('System'),
+                            SizedBox(
+                              width: double.infinity,
+                              child: SegmentedButton<AppThemeMode>(
+                                segments: const [
+                                  ButtonSegment(
+                                    value: AppThemeMode.system,
+                                    icon: Icon(Icons.auto_mode, size: 20),
+                                    tooltip: 'System',
+                                  ),
+                                  ButtonSegment(
+                                    value: AppThemeMode.light,
+                                    icon: Icon(Icons.light_mode, size: 20),
+                                    tooltip: 'Light',
+                                  ),
+                                  ButtonSegment(
+                                    value: AppThemeMode.dark,
+                                    icon: Icon(Icons.dark_mode, size: 20),
+                                    tooltip: 'Dark',
+                                  ),
+                                ],
+                                selected: {mode},
+                                onSelectionChanged: (val) => context
+                                    .read<ThemeProvider>()
+                                    .setMode(val.first),
+                                showSelectedIcon: false,
+                                style: SegmentedButton.styleFrom(
+                                  selectedBackgroundColor: colors.accentSoft,
+                                  selectedForegroundColor:
+                                      Theme.of(context).colorScheme.primary,
+                                  visualDensity: VisualDensity.compact,
+                                  tapTargetSize:
+                                      MaterialTapTargetSize.shrinkWrap,
+                                  textStyle: const TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w500,
+                                  ),
                                 ),
-                                ButtonSegment(
-                                  value: AppThemeMode.light,
-                                  icon: Icon(Icons.light_mode),
-                                  label: Text('Light'),
-                                ),
-                                ButtonSegment(
-                                  value: AppThemeMode.dark,
-                                  icon: Icon(Icons.dark_mode),
-                                  label: Text('Dark'),
-                                ),
-                              ],
-                              selected: {mode},
-                              onSelectionChanged: (val) => context
-                                  .read<ThemeProvider>()
-                                  .setMode(val.first),
-                              showSelectedIcon: false,
-                              style: SegmentedButton.styleFrom(
-                                selectedBackgroundColor: AppColors.accentSoft,
-                                selectedForegroundColor:
-                                    Theme.of(context).colorScheme.primary,
-                                visualDensity: VisualDensity.compact,
-                                tapTargetSize:
-                                    MaterialTapTargetSize.shrinkWrap,
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              modeLabel,
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSurface
+                                    .withOpacity(0.6),
                               ),
                             ),
                           ],
@@ -482,16 +485,35 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ).animate(delay: 300.ms).fadeIn(duration: 300.ms).slideY(begin: 0.05),
 
                   const SizedBox(height: 20),
-                  _SectionTitle('App'),
+                  _SectionTitle('About'),
                   BrainUpCard(
-                    padding: EdgeInsets.zero,
+                    padding: const EdgeInsets.symmetric(vertical: 20),
                     child: Column(
                       children: [
-                        _ToggleTile(
-                          icon: Icons.dark_mode_outlined,
-                          title: 'Dark Mode',
-                          value: true,
-                          onChanged: (_) {},
+                        const BrainUpLogo(size: 64),
+                        const SizedBox(height: 12),
+                        Text('BrainUp', style: context.text.h4),
+                        Text('Study smarter.', style: context.text.caption),
+                        const SizedBox(height: 16),
+                        const _Separator(),
+                        _SettingTile(
+                          icon: Icons.info_outline_rounded,
+                          title: 'App Version',
+                          trailing:
+                              Text('1.0.0', style: context.text.caption),
+                          onTap: () {},
+                        ),
+                        const _Separator(),
+                        _SettingTile(
+                          icon: Icons.star_outline_rounded,
+                          title: 'Rate App',
+                          onTap: () {},
+                        ),
+                        const _Separator(),
+                        _SettingTile(
+                          icon: Icons.bug_report_outlined,
+                          title: 'Report Bug',
+                          onTap: () {},
                         ),
                         const _Separator(),
                         _SettingTile(
@@ -507,41 +529,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                   ).animate(delay: 350.ms).fadeIn(duration: 300.ms).slideY(begin: 0.05),
 
-                  const SizedBox(height: 20),
-                  _SectionTitle('About'),
-                  BrainUpCard(
-                    padding: EdgeInsets.zero,
-                    child: Column(
-                      children: [
-                        _SettingTile(
-                          icon: Icons.info_outline_rounded,
-                          title: 'App Version',
-                          trailing:
-                              Text('1.0.0', style: AppTextStyles.caption),
-                          onTap: () {},
-                        ),
-                        const _Separator(),
-                        _SettingTile(
-                          icon: Icons.star_outline_rounded,
-                          title: 'Rate App',
-                          onTap: () {},
-                        ),
-                        const _Separator(),
-                        _SettingTile(
-                          icon: Icons.bug_report_outlined,
-                          title: 'Report Bug',
-                          onTap: () {},
-                        ),
-                      ],
-                    ),
-                  ).animate(delay: 400.ms).fadeIn(duration: 300.ms).slideY(begin: 0.05),
-
                   const SizedBox(height: 32),
                   BrainUpButton.secondary(
                     label: 'Sign Out',
                     onTap: () => _confirmSignOut(context, auth),
-                    icon: const Icon(Icons.logout_rounded,
-                        color: AppColors.accent, size: 18),
+                    icon: Icon(Icons.logout_rounded,
+                        color: colors.accent, size: 18),
                   ).animate(delay: 450.ms).fadeIn(),
                   const SizedBox(height: 24),
                 ],
@@ -557,9 +550,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text('Sign Out', style: AppTextStyles.h4),
+        title: Text('Sign Out', style: ctx.text.h4),
         content: Text('Are you sure you want to sign out?',
-            style: AppTextStyles.bodySmall),
+            style: ctx.text.bodySmall),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
@@ -571,8 +564,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               auth.signOut();
             },
             child: Text('Sign Out',
-                style: AppTextStyles.accentText
-                    .copyWith(color: AppColors.error)),
+                style: ctx.text.accentText.copyWith(color: ctx.colors.error)),
           ),
         ],
       ),
@@ -594,9 +586,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
         padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
         child: Container(
           padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
-          decoration: const BoxDecoration(
-            color: AppColors.surfaceCard,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          decoration: BoxDecoration(
+            color: ctx.colors.surfaceCard,
+            borderRadius:
+                const BorderRadius.vertical(top: Radius.circular(24)),
           ),
           child: Form(
             key: formKey,
@@ -609,10 +602,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         width: 40,
                         height: 4,
                         decoration: BoxDecoration(
-                            color: AppColors.surfaceBorder,
+                            color: ctx.colors.surfaceBorder,
                             borderRadius: BorderRadius.circular(2)))),
                 const SizedBox(height: 20),
-                Text('Edit Profile', style: AppTextStyles.h4),
+                Text('Edit Profile', style: ctx.text.h4),
                 const SizedBox(height: 20),
                 BrainUpTextField(
                   controller: nameCtrl,
@@ -670,9 +663,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
         padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
         child: Container(
           padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
-          decoration: const BoxDecoration(
-            color: AppColors.surfaceCard,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          decoration: BoxDecoration(
+            color: ctx.colors.surfaceCard,
+            borderRadius:
+                const BorderRadius.vertical(top: Radius.circular(24)),
           ),
           child: Form(
             key: formKey,
@@ -684,10 +678,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         width: 40,
                         height: 4,
                         decoration: BoxDecoration(
-                            color: AppColors.surfaceBorder,
+                            color: ctx.colors.surfaceBorder,
                             borderRadius: BorderRadius.circular(2)))),
                 const SizedBox(height: 20),
-                Text('Change Password', style: AppTextStyles.h4),
+                Text('Change Password', style: ctx.text.h4),
                 const SizedBox(height: 20),
                 BrainUpTextField(
                   controller: currentCtrl,
@@ -762,6 +756,7 @@ class _PhotoOptionTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -769,9 +764,9 @@ class _PhotoOptionTile extends StatelessWidget {
         borderRadius: BorderRadius.circular(14),
         child: Ink(
           decoration: BoxDecoration(
-            color: AppColors.surface,
+            color: colors.surface,
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: AppColors.surfaceBorder, width: 1),
+            border: Border.all(color: colors.surfaceBorder, width: 1),
           ),
           padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 15),
           child: Row(
@@ -788,16 +783,16 @@ class _PhotoOptionTile extends StatelessWidget {
               const SizedBox(width: 16),
               Text(
                 label,
-                style: AppTextStyles.body.copyWith(
-                  color: color == AppColors.error
-                      ? AppColors.error
-                      : AppColors.textPrimary,
+                style: context.text.body.copyWith(
+                  color: color == colors.error
+                      ? colors.error
+                      : colors.textPrimary,
                   fontWeight: FontWeight.w500,
                 ),
               ),
               const Spacer(),
               Icon(Icons.chevron_right_rounded,
-                  color: AppColors.textMuted, size: 20),
+                  color: colors.textMuted, size: 20),
             ],
           ),
         ),
@@ -816,11 +811,10 @@ class _StatItem extends StatelessWidget {
     return Column(
       children: [
         Text(value,
-            style: AppTextStyles.h4
-                .copyWith(fontSize: 18, color: AppColors.accent)),
+            style: context.text.h4
+                .copyWith(fontSize: 18, color: context.colors.accent)),
         const SizedBox(height: 2),
-        Text(label,
-            style: AppTextStyles.caption.copyWith(fontSize: 10)),
+        Text(label, style: context.text.caption.copyWith(fontSize: 10)),
       ],
     );
   }
@@ -830,7 +824,8 @@ class _Divider extends StatelessWidget {
   const _Divider();
   @override
   Widget build(BuildContext context) {
-    return Container(width: 1, height: 32, color: AppColors.surfaceBorder);
+    return Container(
+        width: 1, height: 32, color: context.colors.surfaceBorder);
   }
 }
 
@@ -838,11 +833,11 @@ class _Separator extends StatelessWidget {
   const _Separator();
   @override
   Widget build(BuildContext context) {
-    return const Divider(
+    return Divider(
         height: 0,
         indent: 52,
         endIndent: 0,
-        color: AppColors.surfaceBorder);
+        color: context.colors.surfaceBorder);
   }
 }
 
@@ -855,8 +850,8 @@ class _SectionTitle extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 10),
       child: Text(
         title.toUpperCase(),
-        style: AppTextStyles.label
-            .copyWith(letterSpacing: 1.2, color: AppColors.textMuted),
+        style: context.text.label
+            .copyWith(letterSpacing: 1.2, color: context.colors.textMuted),
       ),
     );
   }
@@ -879,14 +874,15 @@ class _SettingTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final c = color ?? AppColors.textPrimary;
+    final colors = context.colors;
+    final c = color ?? colors.textPrimary;
     return ListTile(
       onTap: onTap,
-      leading: Icon(icon, color: color ?? AppColors.textSecondary, size: 22),
-      title: Text(title, style: AppTextStyles.body.copyWith(color: c)),
+      leading: Icon(icon, color: color ?? colors.textSecondary, size: 22),
+      title: Text(title, style: context.text.body.copyWith(color: c)),
       trailing: trailing ??
-          const Icon(Icons.chevron_right_rounded,
-              color: AppColors.textMuted, size: 20),
+          Icon(Icons.chevron_right_rounded,
+              color: colors.textMuted, size: 20),
       contentPadding:
           const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
     );
@@ -909,9 +905,8 @@ class _ToggleTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListTile(
-      leading:
-          Icon(icon, color: AppColors.textSecondary, size: 22),
-      title: Text(title, style: AppTextStyles.body),
+      leading: Icon(icon, color: context.colors.textSecondary, size: 22),
+      title: Text(title, style: context.text.body),
       trailing: Switch(value: value, onChanged: onChanged),
       contentPadding:
           const EdgeInsets.symmetric(horizontal: 16, vertical: 2),

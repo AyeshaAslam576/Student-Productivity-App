@@ -20,6 +20,7 @@ class AppAssets {
   static const String svgEmptyAttendance = 'assets/svg/empty_attendance.svg';
 
   // Images
+  static const String logo = 'assets/logos/logo.png';
   static const String imgOnboarding1 = 'assets/images/onboarding1.png';
   static const String imgOnboarding2 = 'assets/images/onboarding2.png';
   static const String imgOnboarding3 = 'assets/images/onboarding3.png';

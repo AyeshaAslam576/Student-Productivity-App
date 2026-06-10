@@ -8,8 +8,8 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:share_plus/share_plus.dart';
 
-import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_text_styles.dart';
+import '../../../core/navigation/back_navigation.dart';
+import '../../../core/theme/app_palette.dart';
 import '../../../core/widgets/brainup_button.dart';
 import '../../../core/widgets/brainup_text_field.dart';
 import 'widgets/scanner_overlay.dart';
@@ -56,9 +56,13 @@ class _QrScreenState extends State<QrScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.surface,
+      backgroundColor: context.colors.surface,
       appBar: AppBar(
-        backgroundColor: AppColors.surface,
+        backgroundColor: context.colors.surface,
+        automaticallyImplyLeading: false,
+        leading: brainUpBackButton(context,
+            fallback: '/documents',
+            iconColor: context.colors.textPrimary),
         title: const Text('QR Tools'),
         bottom: TabBar(
           controller: _tab,
@@ -124,14 +128,14 @@ class _QrScreenState extends State<QrScreen>
                     margin: const EdgeInsets.all(16),
                     padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
-                      color: AppColors.surfaceCard,
+                      color: context.colors.surfaceCard,
                       borderRadius: BorderRadius.circular(14),
                     ),
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Detected', style: AppTextStyles.caption),
+                        Text('Detected', style: context.text.caption),
                         const SizedBox(height: 4),
                         Text(_scanResult,
                             maxLines: 4, overflow: TextOverflow.ellipsis),

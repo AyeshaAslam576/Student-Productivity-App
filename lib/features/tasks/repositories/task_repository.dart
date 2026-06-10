@@ -48,6 +48,13 @@ class TaskRepository {
     });
   }
 
+  Future<void> uncompleteTask(String taskId) async {
+    await _tasksRef.doc(taskId).update({
+      'status': TaskStatus.pending.name,
+      'completedAt': FieldValue.delete(),
+    });
+  }
+
   Future<void> toggleSubtask(
       String taskId, String subtaskId, bool value) async {
     final doc = await _tasksRef.doc(taskId).get();

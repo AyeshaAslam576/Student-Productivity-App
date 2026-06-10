@@ -4,11 +4,12 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
-import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_text_styles.dart';
+import '../../../core/navigation/back_navigation.dart';
+import '../../../core/theme/app_palette.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/widgets/brainup_card.dart';
 import '../../../core/widgets/brainup_button.dart';
+import '../../../core/widgets/brainup_markdown.dart';
 import '../../../core/widgets/brainup_shimmer.dart';
 import '../models/ai_session_model.dart';
 import '../viewmodels/ai_viewmodel.dart';
@@ -16,7 +17,10 @@ import 'widgets/input_selector.dart';
 import 'widgets/recent_sessions_sheet.dart';
 
 class SummarizerScreen extends StatefulWidget {
-  const SummarizerScreen({super.key});
+  /// Pre-filled from document OCR / PDF viewer via route `extra`.
+  final String? initialText;
+
+  const SummarizerScreen({super.key, this.initialText});
 
   @override
   State<SummarizerScreen> createState() => _SummarizerScreenState();
@@ -31,6 +35,10 @@ class _SummarizerScreenState extends State<SummarizerScreen> {
   @override
   void initState() {
     super.initState();
+    final initial = widget.initialText?.trim();
+    if (initial != null && initial.isNotEmpty) {
+      _textCtrl.text = initial;
+    }
     _textCtrl.addListener(() => setState(() {}));
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<AiViewModel>().loadRecentSessions();
@@ -43,8 +51,17 @@ class _SummarizerScreenState extends State<SummarizerScreen> {
     super.dispose();
   }
 
-  bool _validate() {
-    final text = _textCtrl.text.trim();
+  /// Text sent to AI: file OCR when a file was uploaded, else the paste field.
+  String _inputForAnalysis(AiViewModel vm) {
+    if (vm.inputSource == InputSource.uploadedFile &&
+        vm.currentInput.trim().isNotEmpty) {
+      return vm.currentInput.trim();
+    }
+    return _textCtrl.text.trim();
+  }
+
+  bool _validate(AiViewModel vm) {
+    final text = _inputForAnalysis(vm);
     String? message;
     if (text.isEmpty) {
       message = 'Please enter or upload text first';
@@ -61,59 +78,63 @@ class _SummarizerScreenState extends State<SummarizerScreen> {
   }
 
   void _showRecentSessions() {
-    final vm = context.read<AiViewModel>();
-    final summarizerSessions =
-        vm.recentSessions.where((s) => s.type == SessionType.summarizer).toList();
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
-      builder: (_) => RecentSessionsSheet(
-        sessions: summarizerSessions,
-        onSessionSelected: (session) {
-          vm.loadSession(session);
-          _textCtrl.text = session.originalInput;
-          _style = session.metadata['style'] as String? ?? 'Detailed';
-          setState(() {});
-        },
-        onSessionDeleted: vm.deleteSession,
-        onSessionFavoriteToggle: vm.toggleSessionFavorite,
+      builder: (_) => ChangeNotifierProvider.value(
+        value: context.read<AiViewModel>(),
+        child: Builder(
+          builder: (sheetCtx) {
+            final vm = sheetCtx.watch<AiViewModel>();
+            final summarizerSessions = vm.recentSessions
+                .where((s) => s.type == SessionType.summarizer)
+                .toList();
+            return RecentSessionsSheet(
+              sessions: summarizerSessions,
+              onSessionSelected: (session) {
+                vm.loadSession(session);
+                _textCtrl.text = session.originalInput;
+                _style = session.metadata['style'] as String? ?? 'Detailed';
+                setState(() {});
+              },
+              onSessionDeleted: vm.deleteSession,
+              onSessionFavoriteToggle: vm.toggleSessionFavorite,
+            );
+          },
+        ),
       ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     final vm = context.watch<AiViewModel>();
     final hasSessions = vm.recentSessions
         .any((s) => s.type == SessionType.summarizer);
     return Scaffold(
-      backgroundColor: AppColors.surface,
+      backgroundColor: colors.surface,
       body: SafeArea(
         child: Column(
           children: [
             // AppBar
             Container(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-              decoration: const BoxDecoration(
-                color: AppColors.surface,
-                border: Border(bottom: BorderSide(color: AppColors.surfaceBorder, width: 0.5)),
+              decoration: BoxDecoration(
+                color: colors.surface,
+                border: Border(bottom: BorderSide(color: colors.surfaceBorder, width: 0.5)),
               ),
               child: Row(
                 children: [
-                  IconButton(
-                    onPressed: () {
-                      if (context.canPop()) {
-                        context.pop();
-                      } else {
-                        context.go('/home');
-                      }
-                    },
-                    icon: const Icon(Icons.arrow_back_rounded, color: AppColors.textPrimary),
+                  brainUpBackButton(
+                    context,
+                    fallback: brainupAiToolsFallback,
+                    iconColor: colors.textPrimary,
                   ),
-                  const Icon(Icons.summarize_rounded, color: AppColors.accent, size: 22),
+                  Icon(Icons.summarize_rounded, color: colors.accent, size: 22),
                   const SizedBox(width: 8),
-                  Text('Summarizer', style: AppTextStyles.h3),
+                  Text('Summarizer', style: context.text.h3),
                   const Spacer(),
                   if (hasSessions)
                     IconButton(
@@ -124,9 +145,9 @@ class _SummarizerScreenState extends State<SummarizerScreen> {
                           style:
                               const TextStyle(fontSize: 10, color: Colors.white),
                         ),
-                        child: const Icon(
+                        child: Icon(
                           Icons.history_rounded,
-                          color: AppColors.textSecondary,
+                          color: colors.textSecondary,
                           size: 22,
                         ),
                       ),
@@ -138,7 +159,7 @@ class _SummarizerScreenState extends State<SummarizerScreen> {
                         _inputKey.currentState?.clearFile();
                         vm.clearSummary();
                       },
-                      icon: const Icon(Icons.refresh_rounded, color: AppColors.textSecondary),
+                      icon: Icon(Icons.refresh_rounded, color: colors.textSecondary),
                     ),
                 ],
               ),
@@ -161,15 +182,15 @@ class _SummarizerScreenState extends State<SummarizerScreen> {
                               duration: const Duration(milliseconds: 200),
                               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
                               decoration: BoxDecoration(
-                                color: selected ? AppColors.accentSoft : AppColors.surfaceElevated,
+                                color: selected ? colors.accentSoft : colors.surfaceElevated,
                                 borderRadius: BorderRadius.circular(8),
                                 border: Border.all(
-                                  color: selected ? AppColors.accent : AppColors.surfaceBorder,
+                                  color: selected ? colors.accent : colors.surfaceBorder,
                                   width: selected ? 1 : 0.5,
                                 ),
                               ),
-                              child: Text(s, style: AppTextStyles.labelSmall.copyWith(
-                                color: selected ? AppColors.accent : AppColors.textSecondary,
+                              child: Text(s, style: context.text.labelSmall.copyWith(
+                                color: selected ? colors.accent : colors.textSecondary,
                                 fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
                               )),
                             ),
@@ -185,9 +206,6 @@ class _SummarizerScreenState extends State<SummarizerScreen> {
                       onFileSelected: (file) async {
                         if (file == null) return;
                         await vm.uploadFile(file);
-                        if (mounted && vm.currentInput.isNotEmpty) {
-                          _textCtrl.text = vm.currentInput;
-                        }
                       },
                       onInputChanged: vm.setCurrentInput,
                     ),
@@ -196,11 +214,11 @@ class _SummarizerScreenState extends State<SummarizerScreen> {
                       label: 'Summarize',
                       isLoading: vm.summaryState == AiState.loading,
                       onTap: vm.summaryState == AiState.loading ||
-                              _textCtrl.text.trim().isEmpty
+                              _inputForAnalysis(vm).isEmpty
                           ? null
                           : () {
-                              if (_validate()) {
-                                vm.summarize(_textCtrl.text.trim(),
+                              if (_validate(vm)) {
+                                vm.summarize(_inputForAnalysis(vm),
                                     style: _style);
                               }
                             },
@@ -216,10 +234,10 @@ class _SummarizerScreenState extends State<SummarizerScreen> {
                       Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
-                          color: AppColors.error.withOpacity(0.1),
+                          color: colors.error.withOpacity(0.1),
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        child: Text(vm.error ?? 'An error occurred', style: AppTextStyles.bodySmall.copyWith(color: AppColors.error)),
+                        child: Text(vm.error ?? 'An error occurred', style: context.text.bodySmall.copyWith(color: colors.error)),
                       ),
                     ],
                     if (vm.summaryState == AiState.done && vm.summaryResult.isNotEmpty) ...[
@@ -230,9 +248,9 @@ class _SummarizerScreenState extends State<SummarizerScreen> {
                           children: [
                             Row(
                               children: [
-                                const Icon(Icons.summarize_rounded, size: 18, color: AppColors.accent),
+                                Icon(Icons.summarize_rounded, size: 18, color: colors.accent),
                                 const SizedBox(width: 8),
-                                Text('Summary', style: AppTextStyles.h5),
+                                Text('Summary', style: context.text.h5),
                                 const Spacer(),
                                 IconButton(
                                   onPressed: () {
@@ -241,17 +259,17 @@ class _SummarizerScreenState extends State<SummarizerScreen> {
                                       const SnackBar(content: Text('Copied to clipboard')),
                                     );
                                   },
-                                  icon: const Icon(Icons.copy_rounded, size: 18, color: AppColors.textSecondary),
+                                  icon: Icon(Icons.copy_rounded, size: 18, color: colors.textSecondary),
                                   padding: EdgeInsets.zero,
                                   constraints: const BoxConstraints(),
                                 ),
                                 IconButton(
                                   onPressed: () =>
                                       Share.share(vm.summaryResult),
-                                  icon: const Icon(
+                                  icon: Icon(
                                     Icons.share_rounded,
                                     size: 18,
-                                    color: AppColors.textSecondary,
+                                    color: colors.textSecondary,
                                   ),
                                   padding: EdgeInsets.zero,
                                   constraints: const BoxConstraints(),
@@ -259,24 +277,24 @@ class _SummarizerScreenState extends State<SummarizerScreen> {
                               ],
                             ),
                             if (vm.summaryResult.isNotEmpty &&
-                                _textCtrl.text.isNotEmpty)
+                                _inputForAnalysis(vm).isNotEmpty)
                               Padding(
                                 padding: const EdgeInsets.only(bottom: 8),
                                 child: Row(
                                   children: [
                                     _CountChip(
                                       label: 'Original',
-                                      count: _textCtrl.text
-                                          .trim()
+                                      count: _inputForAnalysis(vm)
                                           .split(RegExp(r'\s+'))
+                                          .where((w) => w.isNotEmpty)
                                           .length,
-                                      color: AppColors.textSecondary,
+                                      color: colors.textSecondary,
                                     ),
                                     const SizedBox(width: 8),
-                                    const Icon(
+                                    Icon(
                                       Icons.arrow_forward_rounded,
                                       size: 14,
-                                      color: AppColors.textMuted,
+                                      color: colors.textMuted,
                                     ),
                                     const SizedBox(width: 8),
                                     _CountChip(
@@ -285,16 +303,15 @@ class _SummarizerScreenState extends State<SummarizerScreen> {
                                           .trim()
                                           .split(RegExp(r'\s+'))
                                           .length,
-                                      color: AppColors.success,
+                                      color: colors.success,
                                     ),
                                   ],
                                 ),
                               ),
-                            const Divider(color: AppColors.surfaceBorder, height: 16),
-                            Text(
-                              vm.summaryResult,
-                              style: AppTextStyles.body.copyWith(height: 1.6),
-                            ).animate().fadeIn(duration: 400.ms),
+                            Divider(color: colors.surfaceBorder, height: 16),
+                            BrainUpMarkdown(data: vm.summaryResult)
+                                .animate()
+                                .fadeIn(duration: 400.ms),
                           ],
                         ),
                       ),
@@ -332,7 +349,7 @@ class _CountChip extends StatelessWidget {
       ),
       child: Text(
         '$label: $count',
-        style: AppTextStyles.caption.copyWith(color: color),
+        style: context.text.caption.copyWith(color: color),
       ),
     );
   }

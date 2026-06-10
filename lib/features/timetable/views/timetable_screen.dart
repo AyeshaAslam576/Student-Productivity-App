@@ -6,7 +6,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_text_styles.dart';
+import '../../../core/theme/app_palette.dart';
 import '../../../core/widgets/brainup_card.dart';
 import '../../../core/widgets/brainup_shimmer.dart';
 import '../../../core/widgets/brainup_button.dart';
@@ -48,9 +48,10 @@ class _TimetableScreenState extends State<TimetableScreen>
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     final vm = context.watch<TimetableViewModel>();
     return Scaffold(
-      backgroundColor: AppColors.surface,
+      backgroundColor: colors.surface,
       body: SafeArea(
         child: Column(
           children: [
@@ -59,7 +60,7 @@ class _TimetableScreenState extends State<TimetableScreen>
               vm: vm,
             ),
             Container(
-              color: AppColors.surfaceCard,
+              color: colors.surfaceCard,
               child: TabBar(
                 controller: _tabCtrl,
                 tabs: const [
@@ -77,7 +78,10 @@ class _TimetableScreenState extends State<TimetableScreen>
                   : TabBarView(
                       controller: _tabCtrl,
                       children: [
-                        _WeekView(vm: vm),
+                        _WeekView(
+                          vm: vm,
+                          onAddTimetable: () => _showAddSheet(context, vm),
+                        ),
                         _TodayView(vm: vm),
                       ],
                     ),
@@ -108,26 +112,29 @@ class _TimetableAppBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
+    final text = context.text;
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 8, 12, 12),
-      decoration: const BoxDecoration(
-        color: AppColors.surface,
-        border: Border(bottom: BorderSide(color: AppColors.surfaceBorder, width: 0.5)),
+      decoration: BoxDecoration(
+        color: colors.surface,
+        border: Border(
+          bottom: BorderSide(color: colors.surfaceBorder, width: 0.5),
+        ),
       ),
       child: Row(
         children: [
-          Text('Timetable', style: AppTextStyles.h3),
+          Text('Timetable', style: text.h3),
           const Spacer(),
           PopupMenuButton<String>(
             tooltip: 'Timetable options',
-            color: AppColors.surfaceCard,
+            color: colors.surfaceCard,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
-              side: const BorderSide(
-                  color: AppColors.surfaceBorder, width: 0.5),
+              side: BorderSide(color: colors.surfaceBorder, width: 0.5),
             ),
-            icon: const Icon(Icons.more_vert_rounded,
-                color: AppColors.textSecondary, size: 22),
+            icon: Icon(Icons.more_vert_rounded,
+                color: colors.textSecondary, size: 22),
             onSelected: (value) {
               switch (value) {
                 case 'add':
@@ -148,35 +155,34 @@ class _TimetableAppBar extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.all(6),
                     decoration: BoxDecoration(
-                      color: AppColors.accentSoft,
+                      color: colors.accentSoft,
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: const Icon(Icons.add_rounded,
-                        color: AppColors.accent, size: 18),
+                    child: Icon(Icons.add_rounded,
+                        color: colors.accent, size: 18),
                   ),
                   const SizedBox(width: 12),
-                  Text('Add lecture', style: AppTextStyles.body),
+                  Text('Add lecture', style: text.body),
                 ]),
               ),
               PopupMenuItem(
                 value: 'notifications',
                 child: Row(children: [
-                  const Icon(Icons.notifications_outlined,
-                      color: AppColors.textSecondary, size: 20),
+                  Icon(Icons.notifications_outlined,
+                      color: colors.textSecondary, size: 20),
                   const SizedBox(width: 14),
-                  Text('Notification settings', style: AppTextStyles.body),
+                  Text('Notification settings', style: text.body),
                 ]),
               ),
               const PopupMenuDivider(),
               PopupMenuItem(
                 value: 'reset',
                 child: Row(children: [
-                  const Icon(Icons.delete_sweep_rounded,
-                      color: AppColors.error, size: 20),
+                  Icon(Icons.delete_sweep_rounded,
+                      color: colors.error, size: 20),
                   const SizedBox(width: 14),
                   Text('Reset timetable',
-                      style: AppTextStyles.body
-                          .copyWith(color: AppColors.error)),
+                      style: text.body.copyWith(color: colors.error)),
                 ]),
               ),
             ],
@@ -187,6 +193,8 @@ class _TimetableAppBar extends StatelessWidget {
   }
 
   void _showNotificationSettings(BuildContext ctx, TimetableViewModel vm) {
+    final colors = ctx.colors;
+    final text = ctx.text;
     showModalBottomSheet(
       context: ctx,
       isScrollControlled: true,
@@ -198,9 +206,9 @@ class _TimetableAppBar extends StatelessWidget {
         maxChildSize: 0.92,
         builder: (_, scrollCtrl) => Container(
         padding: const EdgeInsets.all(24),
-        decoration: const BoxDecoration(
-          color: AppColors.surfaceCard,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        decoration: BoxDecoration(
+          color: colors.surfaceCard,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
         ),
         child: SingleChildScrollView(
           controller: scrollCtrl,
@@ -209,17 +217,17 @@ class _TimetableAppBar extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Center(child: Container(width: 40, height: 4,
-              decoration: BoxDecoration(color: AppColors.surfaceBorder,
+              decoration: BoxDecoration(color: colors.surfaceBorder,
                 borderRadius: BorderRadius.circular(2)))),
             const SizedBox(height: 16),
-            Text('Notification Settings', style: AppTextStyles.h4),
+            Text('Notification Settings', style: text.h4),
             const SizedBox(height: 20),
             _NotifSettingRow(
               icon: Icons.alarm_rounded,
               title: '15-min Warning',
               subtitle: 'Alert before each lecture starts',
               prefKey: 'notif_15min',
-              color: AppColors.warning,
+              color: colors.warning,
               onChanged: (_) => LectureNotificationService
                   .rescheduleAllForTimetable(vm.lectures),
             ),
@@ -229,7 +237,7 @@ class _TimetableAppBar extends StatelessWidget {
               title: 'Lecture Start Alert',
               subtitle: 'With motivational quote + full details',
               prefKey: 'notif_start',
-              color: AppColors.accent,
+              color: colors.accent,
               onChanged: (_) => LectureNotificationService
                   .rescheduleAllForTimetable(vm.lectures),
             ),
@@ -239,7 +247,7 @@ class _TimetableAppBar extends StatelessWidget {
               title: 'Break Time Reminder',
               subtitle: 'Between consecutive lectures',
               prefKey: 'notif_break',
-              color: AppColors.success,
+              color: colors.success,
               onChanged: (_) => LectureNotificationService
                   .rescheduleAllForTimetable(vm.lectures),
             ),
@@ -249,7 +257,7 @@ class _TimetableAppBar extends StatelessWidget {
               title: 'Morning Digest',
               subtitle: "Today's schedule at 8:00 AM",
               prefKey: 'notif_morning',
-              color: AppColors.warning,
+              color: colors.warning,
               onChanged: (_) => LectureNotificationService
                   .rescheduleAllForTimetable(vm.lectures),
             ),
@@ -260,7 +268,7 @@ class _TimetableAppBar extends StatelessWidget {
               subtitle:
                   'When each class ends — quick Present / Absent (Android)',
               prefKey: 'notif_lecture_end',
-              color: AppColors.info,
+              color: colors.info,
               onChanged: (_) => LectureNotificationService
                   .rescheduleAllForTimetable(vm.lectures),
             ),
@@ -272,9 +280,9 @@ class _TimetableAppBar extends StatelessWidget {
                 Navigator.pop(ctx);
                 await LectureNotificationService.rescheduleAllForTimetable(vm.lectures);
                 if (ctx.mounted) {
-                  ScaffoldMessenger.of(ctx).showSnackBar(const SnackBar(
-                    content: Text('✅ Notifications rescheduled for 4 weeks'),
-                    backgroundColor: AppColors.success,
+                  ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(
+                    content: const Text('✅ Notifications rescheduled for 4 weeks'),
+                    backgroundColor: colors.success,
                   ));
                 }
               },
@@ -289,27 +297,28 @@ class _TimetableAppBar extends StatelessWidget {
   }
 
   void _confirmReset(BuildContext ctx, TimetableViewModel vm) {
+    final colors = ctx.colors;
+    final text = ctx.text;
     showModalBottomSheet(
       context: ctx,
       backgroundColor: Colors.transparent,
       builder: (_) => Container(
         padding: const EdgeInsets.all(24),
-        decoration: const BoxDecoration(
-          color: AppColors.surfaceCard,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        decoration: BoxDecoration(
+          color: colors.surfaceCard,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.warning_amber_rounded,
-                color: AppColors.error, size: 40),
+            Icon(Icons.warning_amber_rounded,
+                color: colors.error, size: 40),
             const SizedBox(height: 12),
-            Text('Reset Timetable?', style: AppTextStyles.h4),
+            Text('Reset Timetable?', style: text.h4),
             const SizedBox(height: 8),
             Text(
               'All lectures and notifications will be deleted permanently.',
-              style: AppTextStyles.bodySmall.copyWith(
-                  color: AppColors.textSecondary),
+              style: text.bodySmall.copyWith(color: colors.textSecondary),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 24),
@@ -383,28 +392,29 @@ class _TodayView extends StatelessWidget {
 
   void _showLectureOptions(
       BuildContext ctx, TimetableViewModel vm, LectureModel lecture) {
+    final colors = ctx.colors;
+    final text = ctx.text;
     showModalBottomSheet(
       context: ctx,
       backgroundColor: Colors.transparent,
       builder: (_) => Container(
         padding: const EdgeInsets.all(24),
-        decoration: const BoxDecoration(
-          color: AppColors.surfaceCard,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        decoration: BoxDecoration(
+          color: colors.surfaceCard,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Center(child: Container(width: 40, height: 4,
-              decoration: BoxDecoration(color: AppColors.surfaceBorder,
+              decoration: BoxDecoration(color: colors.surfaceBorder,
                 borderRadius: BorderRadius.circular(2)))),
             const SizedBox(height: 16),
-            Text(lecture.subject, style: AppTextStyles.h4),
+            Text(lecture.subject, style: text.h4),
             Text(
               '${lecture.day} • ${lecture.startTime}–${lecture.endTime}',
-              style: AppTextStyles.bodySmall
-                  .copyWith(color: AppColors.textSecondary),
+              style: text.bodySmall.copyWith(color: colors.textSecondary),
             ),
             const SizedBox(height: 20),
             Row(children: [
@@ -416,25 +426,25 @@ class _TodayView extends StatelessWidget {
             ]),
             const SizedBox(height: 20),
             Row(children: [
-              const Icon(Icons.notifications_outlined,
-                  color: AppColors.textSecondary, size: 20),
+              Icon(Icons.notifications_outlined,
+                  color: colors.textSecondary, size: 20),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text('Lecture Notifications',
-                        style: AppTextStyles.body
+                        style: text.body
                             .copyWith(fontWeight: FontWeight.w600)),
                     Text('15-min warning + start alert + break reminder',
-                        style: AppTextStyles.caption),
+                        style: text.caption),
                   ],
                 ),
               ),
               Switch(
                 value: lecture.notificationsEnabled,
-                activeThumbColor: AppColors.accent,
-                activeTrackColor: AppColors.accentSoft,
+                activeThumbColor: colors.accent,
+                activeTrackColor: colors.accentSoft,
                 onChanged: (v) {
                   Navigator.pop(ctx);
                   vm.toggleLectureNotification(lecture.id, v);
@@ -458,16 +468,15 @@ class _TodayView extends StatelessWidget {
               child: Padding(
                 padding: const EdgeInsets.symmetric(vertical: 12),
                 child: Row(children: [
-                  const Icon(Icons.edit_outlined,
-                      color: AppColors.accent, size: 20),
+                  Icon(Icons.edit_outlined,
+                      color: colors.accent, size: 20),
                   const SizedBox(width: 12),
                   Text('Edit Lecture',
-                      style: AppTextStyles.body
-                          .copyWith(color: AppColors.accent)),
+                      style: text.body.copyWith(color: colors.accent)),
                 ]),
               ),
             ),
-            const Divider(height: 1, color: AppColors.surfaceBorder),
+            Divider(height: 1, color: colors.surfaceBorder),
             GestureDetector(
               onTap: () {
                 Navigator.pop(ctx); // close options sheet
@@ -476,33 +485,33 @@ class _TodayView extends StatelessWidget {
                   backgroundColor: Colors.transparent,
                   builder: (_) => Container(
                     padding: const EdgeInsets.all(24),
-                    decoration: const BoxDecoration(
-                      color: AppColors.surfaceCard,
-                      borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                    decoration: BoxDecoration(
+                      color: colors.surfaceCard,
+                      borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
                     ),
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Center(child: Container(width: 40, height: 4,
-                          decoration: BoxDecoration(color: AppColors.surfaceBorder,
+                          decoration: BoxDecoration(color: colors.surfaceBorder,
                             borderRadius: BorderRadius.circular(2)))),
                         const SizedBox(height: 20),
-                        const Icon(Icons.delete_outline_rounded,
-                            color: AppColors.error, size: 40),
+                        Icon(Icons.delete_outline_rounded,
+                            color: colors.error, size: 40),
                         const SizedBox(height: 12),
-                        Text('Delete Lecture?', style: AppTextStyles.h4),
+                        Text('Delete Lecture?', style: text.h4),
                         const SizedBox(height: 8),
                         Text(
                           '${lecture.subject} • ${lecture.day} ${lecture.startTime}',
-                          style: AppTextStyles.bodySmall.copyWith(
-                              color: AppColors.textSecondary),
+                          style: text.bodySmall.copyWith(
+                              color: colors.textSecondary),
                           textAlign: TextAlign.center,
                         ),
                         const SizedBox(height: 6),
                         Text(
                           'Lecture notifications will also be cancelled.',
-                          style: AppTextStyles.caption.copyWith(
-                              color: AppColors.textMuted),
+                          style: text.caption.copyWith(
+                              color: colors.textMuted),
                           textAlign: TextAlign.center,
                         ),
                         const SizedBox(height: 24),
@@ -533,11 +542,11 @@ class _TodayView extends StatelessWidget {
               child: Padding(
                 padding: const EdgeInsets.symmetric(vertical: 12),
                 child: Row(children: [
-                  const Icon(Icons.delete_outline_rounded,
-                      color: AppColors.error, size: 20),
+                  Icon(Icons.delete_outline_rounded,
+                      color: colors.error, size: 20),
                   const SizedBox(width: 12),
                   Text('Delete Lecture',
-                      style: AppTextStyles.body.copyWith(color: AppColors.error)),
+                      style: text.body.copyWith(color: colors.error)),
                 ]),
               ),
             ),
@@ -643,25 +652,28 @@ class _LectureEditSheetState extends State<_LectureEditSheet> {
     final ok = await vm.updateLecture(updated);
     if (!mounted) return;
     setState(() => _saving = false);
+    final colors = context.colors;
     Navigator.of(context).pop();
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       content: Text(ok
           ? '✅ Lecture updated'
           : 'Could not update lecture. Try again.'),
-      backgroundColor: ok ? AppColors.success : AppColors.error,
+      backgroundColor: ok ? colors.success : colors.error,
     ));
   }
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
+    final text = context.text;
     final mq = MediaQuery.of(context);
     return Padding(
       padding: EdgeInsets.only(bottom: mq.viewInsets.bottom),
       child: Container(
         padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
-        decoration: const BoxDecoration(
-          color: AppColors.surfaceCard,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        decoration: BoxDecoration(
+          color: colors.surfaceCard,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
         ),
         child: SingleChildScrollView(
           child: Column(
@@ -673,7 +685,7 @@ class _LectureEditSheetState extends State<_LectureEditSheet> {
                   width: 40,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: AppColors.surfaceBorder,
+                    color: colors.surfaceBorder,
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -681,11 +693,11 @@ class _LectureEditSheetState extends State<_LectureEditSheet> {
               const SizedBox(height: 16),
               Row(
                 children: [
-                  Text('Edit Lecture', style: AppTextStyles.h4),
+                  Text('Edit Lecture', style: text.h4),
                   const Spacer(),
                   IconButton(
-                    icon: const Icon(Icons.close_rounded,
-                        color: AppColors.textSecondary),
+                    icon: Icon(Icons.close_rounded,
+                        color: colors.textSecondary),
                     onPressed: () => Navigator.pop(context),
                   ),
                 ],
@@ -699,16 +711,16 @@ class _LectureEditSheetState extends State<_LectureEditSheet> {
               const SizedBox(height: 10),
               DropdownButtonFormField<String>(
                 value: _days.contains(_day) ? _day : _days.first,
-                dropdownColor: AppColors.surfaceCard,
-                style: AppTextStyles.body,
+                dropdownColor: colors.surfaceCard,
+                style: text.body,
                 decoration: InputDecoration(
                   labelText: 'Day',
                   filled: true,
-                  fillColor: AppColors.surfaceElevated,
+                  fillColor: colors.surfaceElevated,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(
-                        color: AppColors.surfaceBorder, width: 0.5),
+                    borderSide: BorderSide(
+                        color: colors.surfaceBorder, width: 0.5),
                   ),
                 ),
                 items: _days
@@ -740,8 +752,7 @@ class _LectureEditSheetState extends State<_LectureEditSheet> {
                   padding: const EdgeInsets.only(top: 6),
                   child: Text(
                     'End time must be after start time.',
-                    style: AppTextStyles.caption
-                        .copyWith(color: AppColors.error),
+                    style: text.caption.copyWith(color: colors.error),
                   ),
                 ),
               const SizedBox(height: 12),
@@ -790,6 +801,8 @@ class _TimelineCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
+    final text = context.text;
     final color = AppColors.subjectColor(lecture.subject);
     return IntrinsicHeight(
       child: Row(
@@ -800,13 +813,13 @@ class _TimelineCard extends StatelessWidget {
               children: [
                 Text(
                   AppDateUtils.timeFromString(lecture.startTime),
-                  style: AppTextStyles.label.copyWith(color: AppColors.accent, fontSize: 11),
+                  style: text.label.copyWith(color: colors.accent, fontSize: 11),
                   textAlign: TextAlign.center,
                 ),
                 Expanded(
                   child: Container(
                     width: 1.5,
-                    color: isLast ? Colors.transparent : AppColors.surfaceBorder,
+                    color: isLast ? Colors.transparent : colors.surfaceBorder,
                     margin: const EdgeInsets.symmetric(vertical: 4),
                   ),
                 ),
@@ -832,7 +845,7 @@ class _TimelineCard extends StatelessWidget {
                         Row(
                           children: [
                             Expanded(
-                              child: Text(lecture.subject, style: AppTextStyles.h5),
+                              child: Text(lecture.subject, style: text.h5),
                             ),
                             BrainUpTypeBadge(type: lecture.type),
                           ],
@@ -840,19 +853,19 @@ class _TimelineCard extends StatelessWidget {
                         const SizedBox(height: 4),
                         Row(
                           children: [
-                            const Icon(Icons.person_outline, size: 13, color: AppColors.textMuted),
+                            Icon(Icons.person_outline, size: 13, color: colors.textMuted),
                             const SizedBox(width: 4),
-                            Text(lecture.teacher, style: AppTextStyles.caption),
+                            Text(lecture.teacher, style: text.caption),
                             const SizedBox(width: 12),
-                            const Icon(Icons.location_on_outlined, size: 13, color: AppColors.textMuted),
+                            Icon(Icons.location_on_outlined, size: 13, color: colors.textMuted),
                             const SizedBox(width: 4),
-                            Text(lecture.room, style: AppTextStyles.caption),
+                            Text(lecture.room, style: text.caption),
                           ],
                         ),
                         const SizedBox(height: 4),
                         Text(
                           '${AppDateUtils.timeFromString(lecture.startTime)} – ${AppDateUtils.timeFromString(lecture.endTime)}',
-                          style: AppTextStyles.label.copyWith(color: color, fontSize: 11),
+                          style: text.label.copyWith(color: color, fontSize: 11),
                         ),
                       ],
                     ),
@@ -871,7 +884,8 @@ class _TimelineCard extends StatelessWidget {
 
 class _WeekView extends StatelessWidget {
   final TimetableViewModel vm;
-  const _WeekView({required this.vm});
+  final VoidCallback onAddTimetable;
+  const _WeekView({required this.vm, required this.onAddTimetable});
 
   static const _days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
   static const _startHour = 7;
@@ -883,8 +897,15 @@ class _WeekView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (vm.lectures.isEmpty) {
-      return const BrainUpEmptyState(variant: EmptyStateVariant.timetable);
+      return BrainUpEmptyState(
+        variant: EmptyStateVariant.timetable,
+        actionLabel: 'Add Timetable',
+        onAction: onAddTimetable,
+      );
     }
+
+    final colors = context.colors;
+    final text = context.text;
 
     final totalWidth = _timeHeaderWidth + (_endHour - _startHour) * _cellWidth;
 
@@ -912,20 +933,20 @@ class _WeekView extends StatelessWidget {
                       height: 36,
                       alignment: Alignment.centerLeft,
                       padding: const EdgeInsets.only(left: 6),
-                      decoration: const BoxDecoration(
+                      decoration: BoxDecoration(
                         border: Border(
                           bottom: BorderSide(
-                              color: AppColors.surfaceBorder, width: 0.5),
+                              color: colors.surfaceBorder, width: 0.5),
                         ),
                       ),
                       child: Text(label,
-                          style: AppTextStyles.caption.copyWith(fontSize: 10)),
+                          style: text.caption.copyWith(fontSize: 10)),
                     );
                   }),
                 ],
               ),
               // One row per day
-              ..._days.map((day) => _buildDayRow(day)),
+              ..._days.map((day) => _buildDayRow(context, day)),
             ],
           ),
         ),
@@ -933,7 +954,9 @@ class _WeekView extends StatelessWidget {
     );
   }
 
-  Widget _buildDayRow(String day) {
+  Widget _buildDayRow(BuildContext context, String day) {
+    final colors = context.colors;
+    final text = context.text;
     final now = DateTime.now();
     const weekDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
     final isToday = now.weekday <= weekDays.length &&
@@ -954,17 +977,17 @@ class _WeekView extends StatelessWidget {
             alignment: Alignment.center,
             decoration: BoxDecoration(
               border: Border(
-                bottom: const BorderSide(
-                    color: AppColors.surfaceBorder, width: 0.5),
+                bottom: BorderSide(
+                    color: colors.surfaceBorder, width: 0.5),
                 left: isToday
-                    ? const BorderSide(color: AppColors.accent, width: 2.5)
+                    ? BorderSide(color: colors.accent, width: 2.5)
                     : BorderSide.none,
               ),
             ),
             child: Text(
               day,
-              style: AppTextStyles.label.copyWith(
-                color: isToday ? AppColors.accent : AppColors.textSecondary,
+              style: text.label.copyWith(
+                color: isToday ? colors.accent : colors.textSecondary,
                 fontWeight: isToday ? FontWeight.w700 : FontWeight.w500,
               ),
             ),
@@ -981,13 +1004,14 @@ class _WeekView extends StatelessWidget {
                   painter: _WeekGridPainter(
                     cellWidth: _cellWidth,
                     cellCount: _endHour - _startHour,
+                    color: colors.surfaceBorder,
                   ),
                 ),
               ),
               // Lecture blocks
-              ..._buildDayLectureBlocks(dayLectures),
+              ..._buildDayLectureBlocks(context, dayLectures, vm),
               // Current time vertical line (today only)
-              if (isToday) _buildCurrentTimeIndicator(),
+              if (isToday) _buildCurrentTimeIndicator(context),
             ],
           ),
         ],
@@ -995,7 +1019,13 @@ class _WeekView extends StatelessWidget {
     );
   }
 
-  List<Widget> _buildDayLectureBlocks(List<LectureModel> lectures) {
+  List<Widget> _buildDayLectureBlocks(
+    BuildContext context,
+    List<LectureModel> lectures,
+    TimetableViewModel vm,
+  ) {
+    final colors = context.colors;
+    final text = context.text;
     return lectures.map((lec) {
       final left = ((lec.startMinutes / 60) - _startHour) * _cellWidth;
       final width = (lec.durationMinutes / 60) * _cellWidth - 4;
@@ -1008,59 +1038,253 @@ class _WeekView extends StatelessWidget {
         top: 4,
         width: clampedWidth,
         height: 64,
-        child: Container(
-          padding: const EdgeInsets.all(4),
-          decoration: BoxDecoration(
-            color: color.withOpacity(0.18),
-            borderRadius: BorderRadius.circular(6),
-            border: Border.all(
-              color: lec.isLab ? color : color.withOpacity(0.5),
-              width: lec.isLab ? 1.5 : 0.8,
+        child: GestureDetector(
+          onTap: () => _showLectureDetailSheet(context, lec, vm),
+          child: Container(
+            padding: const EdgeInsets.all(4),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.18),
+              borderRadius: BorderRadius.circular(6),
+              border: Border.all(
+                color: lec.isLab ? color : color.withOpacity(0.5),
+                width: lec.isLab ? 1.5 : 0.8,
+              ),
             ),
-          ),
-          child: showInitialOnly
-              ? Center(
-                  child: Text(
-                    lec.subject.isNotEmpty ? lec.subject[0] : '?',
-                    style: AppTextStyles.caption.copyWith(
-                      color: color,
-                      fontWeight: FontWeight.w700,
-                      fontSize: 10,
-                    ),
-                  ),
-                )
-              : Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.start,
-                  children: [
-                    Text(
-                      lec.subject,
-                      style: AppTextStyles.caption.copyWith(
+            child: showInitialOnly
+                ? Center(
+                    child: Text(
+                      lec.subject.isNotEmpty ? lec.subject[0] : '?',
+                      style: text.caption.copyWith(
                         color: color,
                         fontWeight: FontWeight.w700,
                         fontSize: 10,
                       ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
                     ),
-                    const SizedBox(height: 2),
-                    Text(
-                      lec.room,
-                      style: AppTextStyles.caption.copyWith(
-                        fontSize: 9,
-                        color: AppColors.textMuted,
+                  )
+                : Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.start,
+                    children: [
+                      Text(
+                        lec.subject,
+                        style: text.caption.copyWith(
+                          color: color,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 10,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ),
+                      const SizedBox(height: 2),
+                      Text(
+                        lec.room,
+                        style: text.caption.copyWith(
+                          fontSize: 9,
+                          color: colors.textMuted,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+          ),
         ),
       );
     }).toList();
   }
 
-  Widget _buildCurrentTimeIndicator() {
+  void _showLectureDetailSheet(
+    BuildContext ctx,
+    LectureModel lecture,
+    TimetableViewModel vm,
+  ) {
+    final colors = ctx.colors;
+    final text = ctx.text;
+    showModalBottomSheet(
+      context: ctx,
+      backgroundColor: Colors.transparent,
+      builder: (_) => Container(
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: colors.surfaceCard,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: colors.surfaceBorder,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(lecture.subject, style: text.h4),
+            Text(
+              '${lecture.day} • ${lecture.startTime}–${lecture.endTime}',
+              style: text.bodySmall.copyWith(color: colors.textSecondary),
+            ),
+            const SizedBox(height: 20),
+            Row(children: [
+              _DetailChip(Icons.location_on_outlined, lecture.room),
+              const SizedBox(width: 8),
+              _DetailChip(Icons.person_outline, lecture.teacher),
+              const SizedBox(width: 8),
+              BrainUpTypeBadge(type: lecture.type),
+            ]),
+            const SizedBox(height: 20),
+            Row(children: [
+              Icon(Icons.notifications_outlined,
+                  color: colors.textSecondary, size: 20),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Lecture Notifications',
+                      style: text.body.copyWith(fontWeight: FontWeight.w600),
+                    ),
+                    Text(
+                      '15-min warning + start alert + break reminder',
+                      style: text.caption,
+                    ),
+                  ],
+                ),
+              ),
+              Switch(
+                value: lecture.notificationsEnabled,
+                activeThumbColor: colors.accent,
+                activeTrackColor: colors.accentSoft,
+                onChanged: (v) {
+                  Navigator.pop(ctx);
+                  vm.toggleLectureNotification(lecture.id, v);
+                },
+              ),
+            ]),
+            const SizedBox(height: 12),
+            GestureDetector(
+              onTap: () {
+                Navigator.pop(ctx);
+                showModalBottomSheet(
+                  context: ctx,
+                  isScrollControlled: true,
+                  backgroundColor: Colors.transparent,
+                  builder: (_) => ChangeNotifierProvider.value(
+                    value: vm,
+                    child: _LectureEditSheet(lecture: lecture),
+                  ),
+                );
+              },
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                child: Row(children: [
+                  Icon(Icons.edit_outlined, color: colors.accent, size: 20),
+                  const SizedBox(width: 12),
+                  Text(
+                    'Edit Lecture',
+                    style: text.body.copyWith(color: colors.accent),
+                  ),
+                ]),
+              ),
+            ),
+            Divider(height: 1, color: colors.surfaceBorder),
+            GestureDetector(
+              onTap: () {
+                Navigator.pop(ctx);
+                showModalBottomSheet(
+                  context: ctx,
+                  backgroundColor: Colors.transparent,
+                  builder: (_) => Container(
+                    padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      color: colors.surfaceCard,
+                      borderRadius: const BorderRadius.vertical(
+                          top: Radius.circular(20)),
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Center(
+                          child: Container(
+                            width: 40,
+                            height: 4,
+                            decoration: BoxDecoration(
+                              color: colors.surfaceBorder,
+                              borderRadius: BorderRadius.circular(2),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                        Icon(Icons.delete_outline_rounded,
+                            color: colors.error, size: 40),
+                        const SizedBox(height: 12),
+                        Text('Delete Lecture?', style: text.h4),
+                        const SizedBox(height: 8),
+                        Text(
+                          '${lecture.subject} • ${lecture.day} ${lecture.startTime}',
+                          style: text.bodySmall.copyWith(
+                              color: colors.textSecondary),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          'Lecture notifications will also be cancelled.',
+                          style: text.caption.copyWith(
+                              color: colors.textMuted),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 24),
+                        Row(children: [
+                          Expanded(
+                            child: BrainUpButton.secondary(
+                              label: 'Cancel',
+                              onTap: () => Navigator.pop(ctx),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: BrainUpButton(
+                              label: 'Delete',
+                              onTap: () {
+                                Navigator.pop(ctx);
+                                vm.deleteLecture(lecture.id);
+                              },
+                            ),
+                          ),
+                        ]),
+                        const SizedBox(height: 8),
+                      ],
+                    ),
+                  ),
+                );
+              },
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                child: Row(children: [
+                  Icon(Icons.delete_outline_rounded,
+                      color: colors.error, size: 20),
+                  const SizedBox(width: 12),
+                  Text(
+                    'Delete Lecture',
+                    style: text.body.copyWith(color: colors.error),
+                  ),
+                ]),
+              ),
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCurrentTimeIndicator(BuildContext context) {
     final now = DateTime.now();
     final minutesSinceStart = (now.hour - _startHour) * 60 + now.minute;
     final totalMinutes = (_endHour - _startHour) * 60;
@@ -1075,7 +1299,7 @@ class _WeekView extends StatelessWidget {
       width: 2,
       child: Container(
         width: 2,
-        color: AppColors.accent,
+        color: context.colors.accent,
       ),
     );
   }
@@ -1084,13 +1308,18 @@ class _WeekView extends StatelessWidget {
 class _WeekGridPainter extends CustomPainter {
   final double cellWidth;
   final int cellCount;
+  final Color color;
 
-  const _WeekGridPainter({required this.cellWidth, required this.cellCount});
+  const _WeekGridPainter({
+    required this.cellWidth,
+    required this.cellCount,
+    required this.color,
+  });
 
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = AppColors.surfaceBorder
+      ..color = color
       ..strokeWidth = 0.5;
     for (int i = 0; i <= cellCount; i++) {
       final x = i * cellWidth;
@@ -1102,7 +1331,9 @@ class _WeekGridPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_WeekGridPainter old) =>
-      old.cellWidth != cellWidth || old.cellCount != cellCount;
+      old.cellWidth != cellWidth ||
+      old.cellCount != cellCount ||
+      old.color != color;
 }
 
 // ─── ADD TIMETABLE SHEET ─────────────────────────────────────────────────────
@@ -1136,12 +1367,14 @@ class _AddTimetableSheetState extends State<AddTimetableSheet>
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
+    final text = context.text;
     final vm = context.watch<TimetableViewModel>();
     return Container(
       height: MediaQuery.of(context).size.height * 0.92,
-      decoration: const BoxDecoration(
-        color: AppColors.surfaceCard,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      decoration: BoxDecoration(
+        color: colors.surfaceCard,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
       ),
       child: Column(
         children: [
@@ -1149,7 +1382,7 @@ class _AddTimetableSheetState extends State<AddTimetableSheet>
             width: 40, height: 4,
             margin: const EdgeInsets.symmetric(vertical: 12),
             decoration: BoxDecoration(
-              color: AppColors.surfaceBorder,
+              color: colors.surfaceBorder,
               borderRadius: BorderRadius.circular(2),
             ),
           ),
@@ -1157,11 +1390,11 @@ class _AddTimetableSheetState extends State<AddTimetableSheet>
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: Row(
               children: [
-                Text('Add Timetable', style: AppTextStyles.h4),
+                Text('Add Timetable', style: text.h4),
                 const Spacer(),
                 IconButton(
                   onPressed: () => Navigator.pop(context),
-                  icon: const Icon(Icons.close_rounded, color: AppColors.textSecondary),
+                  icon: Icon(Icons.close_rounded, color: colors.textSecondary),
                 ),
               ],
             ),
@@ -1221,6 +1454,8 @@ class _ManualTabState extends State<_ManualTab> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
+    final text = context.text;
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
       child: Column(
@@ -1232,17 +1467,17 @@ class _ManualTabState extends State<_ManualTab> {
           const SizedBox(height: 12),
           BrainUpTextField(label: 'Room', controller: _roomCtrl, prefixIcon: const Icon(Icons.location_on_outlined)),
           const SizedBox(height: 16),
-          Text('Day', style: AppTextStyles.label),
+          Text('Day', style: text.label),
           const SizedBox(height: 8),
           DropdownButtonFormField<String>(
             value: _day,
-            dropdownColor: AppColors.surfaceCard,
-            style: AppTextStyles.body,
+            dropdownColor: colors.surfaceCard,
+            style: text.body,
             decoration: InputDecoration(
               filled: true,
-              fillColor: AppColors.surfaceElevated,
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.surfaceBorder, width: 0.5)),
-              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: AppColors.surfaceBorder, width: 0.5)),
+              fillColor: colors.surfaceElevated,
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: colors.surfaceBorder, width: 0.5)),
+              enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: colors.surfaceBorder, width: 0.5)),
             ),
             items: _days.map((d) => DropdownMenuItem(value: d, child: Text(d))).toList(),
             onChanged: (v) => setState(() => _day = v!),
@@ -1256,7 +1491,7 @@ class _ManualTabState extends State<_ManualTab> {
             ],
           ),
           const SizedBox(height: 16),
-          Text('Type', style: AppTextStyles.label),
+          Text('Type', style: text.label),
           const SizedBox(height: 8),
           Row(
             children: _types.map((t) => Padding(
@@ -1273,16 +1508,17 @@ class _ManualTabState extends State<_ManualTab> {
                   _teacherCtrl.text.trim().isEmpty ||
                   _roomCtrl.text.trim().isEmpty) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Please fill all fields'),
-                    backgroundColor: AppColors.error,
+                  SnackBar(
+                    content: const Text('Please fill all fields'),
+                    backgroundColor: colors.error,
                   ),
                 );
                 return;
               }
               final lec = LectureModel(id: '', day: _day, startTime: _startTime, endTime: _endTime, subject: _subjectCtrl.text.trim(), teacher: _teacherCtrl.text.trim(), room: _roomCtrl.text.trim(), type: _type);
+              final nav = Navigator.of(context);
               final ok = await widget.vm.addLectureManually(lec);
-              if (ok && mounted) Navigator.pop(context);
+              if (ok && mounted) nav.pop();
             },
           ),
         ],
@@ -1299,24 +1535,26 @@ class _TimePicker extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
+    final text = context.text;
     return GestureDetector(
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
         decoration: BoxDecoration(
-          color: AppColors.surfaceElevated,
+          color: colors.surfaceElevated,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppColors.surfaceBorder, width: 0.5),
+          border: Border.all(color: colors.surfaceBorder, width: 0.5),
         ),
         child: Row(
           children: [
-            const Icon(Icons.access_time_rounded, size: 16, color: AppColors.accent),
+            Icon(Icons.access_time_rounded, size: 16, color: colors.accent),
             const SizedBox(width: 8),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(label, style: AppTextStyles.caption),
-                Text(AppDateUtils.timeFromString(time), style: AppTextStyles.body),
+                Text(label, style: text.caption),
+                Text(AppDateUtils.timeFromString(time), style: text.body),
               ],
             ),
           ],
@@ -1347,6 +1585,8 @@ class _ImageUploadTabState extends State<_ImageUploadTab> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
+    final text = context.text;
     final vm = widget.vm;
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
@@ -1358,19 +1598,19 @@ class _ImageUploadTabState extends State<_ImageUploadTab> {
               height: 180,
               width: double.infinity,
               decoration: BoxDecoration(
-                color: AppColors.surfaceElevated,
+                color: colors.surfaceElevated,
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: AppColors.accent.withOpacity(0.4), width: 1.5, style: BorderStyle.solid),
+                border: Border.all(color: colors.accent.withOpacity(0.4), width: 1.5, style: BorderStyle.solid),
               ),
               child: _imageFile == null
                   ? Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Icon(Icons.cloud_upload_outlined, size: 48, color: AppColors.accent),
+                        Icon(Icons.cloud_upload_outlined, size: 48, color: colors.accent),
                         const SizedBox(height: 12),
-                        Text('Tap to select timetable image', style: AppTextStyles.bodySmall),
+                        Text('Tap to select timetable image', style: text.bodySmall),
                         const SizedBox(height: 4),
-                        Text('PNG, JPG supported', style: AppTextStyles.caption),
+                        Text('PNG, JPG supported', style: text.caption),
                       ],
                     )
                   : Stack(
@@ -1391,11 +1631,11 @@ class _ImageUploadTabState extends State<_ImageUploadTab> {
                             child: Container(
                               padding: const EdgeInsets.all(6),
                               decoration: BoxDecoration(
-                                color: AppColors.surfaceCard.withOpacity(0.85),
+                                color: colors.surfaceCard.withOpacity(0.85),
                                 borderRadius: BorderRadius.circular(8),
                               ),
-                              child: const Icon(Icons.edit_rounded,
-                                  color: AppColors.accent, size: 16),
+                              child: Icon(Icons.edit_rounded,
+                                  color: colors.accent, size: 16),
                             ),
                           ),
                         ),
@@ -1420,15 +1660,15 @@ class _ImageUploadTabState extends State<_ImageUploadTab> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: AppColors.error.withOpacity(0.1),
+                color: colors.error.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: Text(vm.parseError!, style: AppTextStyles.bodySmall.copyWith(color: AppColors.error)),
+              child: Text(vm.parseError!, style: text.bodySmall.copyWith(color: colors.error)),
             ),
           ],
           if (vm.parsedLectures.isNotEmpty) ...[
             const SizedBox(height: 16),
-            Text('Review Extracted Lectures', style: AppTextStyles.h4),
+            Text('Review Extracted Lectures', style: text.h4),
             const SizedBox(height: 12),
             ...vm.parsedLectures.asMap().entries.map((e) {
               final idx = e.key;
@@ -1445,8 +1685,9 @@ class _ImageUploadTabState extends State<_ImageUploadTab> {
               label: 'Save Timetable',
               isLoading: vm.isSaving,
               onTap: vm.isSaving ? null : () async {
+                final nav = Navigator.of(context);
                 final ok = await vm.saveParsedLectures();
-                if (ok && mounted) Navigator.pop(context);
+                if (ok && mounted) nav.pop();
               },
             ),
           ],
@@ -1468,6 +1709,8 @@ class _TextPasteTab extends StatefulWidget {
 class _TextPasteTabState extends State<_TextPasteTab> {
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
+    final text = context.text;
     final vm = widget.vm;
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
@@ -1488,7 +1731,7 @@ class _TextPasteTabState extends State<_TextPasteTab> {
           if (vm.parsedLectures.isNotEmpty) ...[
             const SizedBox(height: 16),
             Text('${vm.parsedLectures.length} lectures extracted',
-                style: AppTextStyles.bodySmall.copyWith(color: AppColors.success)),
+                style: text.bodySmall.copyWith(color: colors.success)),
             const SizedBox(height: 12),
             ...vm.parsedLectures.asMap().entries.map((e) {
               final idx = e.key;
@@ -1507,10 +1750,9 @@ class _TextPasteTabState extends State<_TextPasteTab> {
               onTap: vm.isSaving
                   ? null
                   : () async {
+                      final nav = Navigator.of(context);
                       final ok = await vm.saveParsedLectures();
-                      if (ok && mounted) {
-                        Navigator.pop(context);
-                      }
+                      if (ok && mounted) nav.pop();
                     },
             ),
           ],
@@ -1636,13 +1878,15 @@ class _EditableParsedCardState extends State<_EditableParsedCard> {
         child: AnimatedSize(
           duration: const Duration(milliseconds: 250),
           curve: Curves.easeInOut,
-          child: _editing ? _buildEditForm() : _buildReadView(),
+          child: _editing ? _buildEditForm(context) : _buildReadView(context),
         ),
       ),
     );
   }
 
-  Widget _buildReadView() {
+  Widget _buildReadView(BuildContext context) {
+    final colors = context.colors;
+    final text = context.text;
     final color = AppColors.subjectColor(widget.lecture.subject);
     return Row(children: [
       Container(width: 3, height: 50,
@@ -1654,46 +1898,47 @@ class _EditableParsedCardState extends State<_EditableParsedCard> {
       Expanded(child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(widget.lecture.subject, style: AppTextStyles.h5),
+          Text(widget.lecture.subject, style: text.h5),
           const SizedBox(height: 2),
           Text(
             '${widget.lecture.day} · ${widget.lecture.startTime}–${widget.lecture.endTime} · ${widget.lecture.room}',
-            style: AppTextStyles.caption,
+            style: text.caption,
           ),
           Text(widget.lecture.teacher,
-              style: AppTextStyles.caption.copyWith(
-                  color: AppColors.textMuted)),
+              style: text.caption.copyWith(color: colors.textMuted)),
         ],
       )),
       IconButton(
-        icon: const Icon(Icons.edit_outlined,
-            color: AppColors.accent, size: 18),
+        icon: Icon(Icons.edit_outlined,
+            color: colors.accent, size: 18),
         onPressed: () => setState(() => _editing = true),
       ),
       IconButton(
-        icon: const Icon(Icons.delete_outline,
-            color: AppColors.error, size: 18),
+        icon: Icon(Icons.delete_outline,
+            color: colors.error, size: 18),
         onPressed: widget.onDelete,
       ),
     ]);
   }
 
-  Widget _buildEditForm() {
+  Widget _buildEditForm(BuildContext context) {
+    final colors = context.colors;
+    final text = context.text;
     final selectedDay = _days.contains(_day) ? _day : _days.first;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(children: [
-          Text('Edit Entry', style: AppTextStyles.label
-              .copyWith(color: AppColors.accent)),
+          Text('Edit Entry',
+              style: text.label.copyWith(color: colors.accent)),
           const Spacer(),
           TextButton(onPressed: _save,
-              child: const Text('Save',
-                  style: TextStyle(color: AppColors.accent,
+              child: Text('Save',
+                  style: TextStyle(color: colors.accent,
                       fontWeight: FontWeight.w700))),
           TextButton(onPressed: () => setState(() => _editing = false),
               child: Text('Cancel',
-                  style: TextStyle(color: AppColors.textSecondary))),
+                  style: TextStyle(color: colors.textSecondary))),
         ]),
         BrainUpTextField(label: 'Subject', controller: _subjectCtrl),
         const SizedBox(height: 8),
@@ -1703,14 +1948,14 @@ class _EditableParsedCardState extends State<_EditableParsedCard> {
         const SizedBox(height: 8),
         DropdownButtonFormField<String>(
           value: selectedDay,
-          dropdownColor: AppColors.surfaceCard,
-          style: AppTextStyles.body,
+          dropdownColor: colors.surfaceCard,
+          style: text.body,
           decoration: InputDecoration(
-            filled: true, fillColor: AppColors.surfaceElevated,
+            filled: true, fillColor: colors.surfaceElevated,
             border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: const BorderSide(
-                    color: AppColors.surfaceBorder, width: 0.5)),
+                borderSide: BorderSide(
+                    color: colors.surfaceBorder, width: 0.5)),
           ),
           items: _days.map((d) => DropdownMenuItem(
               value: d, child: Text(d))).toList(),
@@ -1775,6 +2020,7 @@ class _NowNextBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     final current = vm.currentLecture;
     final next = vm.nextLectureToday;
     if (current == null && next == null) return const SizedBox.shrink();
@@ -1786,7 +2032,7 @@ class _NowNextBanner extends StatelessWidget {
           if (current != null)
             _BannerCard(
               label: 'NOW',
-              labelColor: AppColors.error,
+              labelColor: colors.error,
               lecture: current,
               isActive: true,
             ),
@@ -1794,7 +2040,7 @@ class _NowNextBanner extends StatelessWidget {
           if (next != null)
             _BannerCard(
               label: 'NEXT',
-              labelColor: AppColors.accent,
+              labelColor: colors.accent,
               lecture: next,
               isActive: false,
             ),
@@ -1819,6 +2065,8 @@ class _BannerCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
+    final text = context.text;
     final color = AppColors.subjectColor(lecture.subject);
     return Container(
       padding: const EdgeInsets.all(14),
@@ -1826,7 +2074,7 @@ class _BannerCard extends StatelessWidget {
         gradient: LinearGradient(
           colors: [
             color.withValues(alpha: 0.12),
-            AppColors.surfaceCard,
+            colors.surfaceCard,
           ],
           begin: Alignment.centerLeft,
           end: Alignment.centerRight,
@@ -1835,7 +2083,7 @@ class _BannerCard extends StatelessWidget {
         border: Border.all(
           color: isActive
               ? labelColor.withValues(alpha: 0.5)
-              : AppColors.surfaceBorder,
+              : colors.surfaceBorder,
           width: isActive ? 1.5 : 0.5,
         ),
       ),
@@ -1865,20 +2113,20 @@ class _BannerCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(lecture.subject,
-                    style: AppTextStyles.h5.copyWith(fontSize: 14)),
+                    style: text.h5.copyWith(fontSize: 14)),
                 const SizedBox(height: 2),
                 Row(children: [
-                  const Icon(Icons.location_on_outlined,
-                      size: 11, color: AppColors.textMuted),
+                  Icon(Icons.location_on_outlined,
+                      size: 11, color: colors.textMuted),
                   const SizedBox(width: 3),
-                  Text(lecture.room, style: AppTextStyles.caption),
+                  Text(lecture.room, style: text.caption),
                   const SizedBox(width: 8),
-                  const Icon(Icons.person_outline,
-                      size: 11, color: AppColors.textMuted),
+                  Icon(Icons.person_outline,
+                      size: 11, color: colors.textMuted),
                   const SizedBox(width: 3),
                   Expanded(
                       child: Text(lecture.teacher,
-                          style: AppTextStyles.caption,
+                          style: text.caption,
                           overflow: TextOverflow.ellipsis)),
                 ]),
               ],
@@ -1888,10 +2136,10 @@ class _BannerCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(lecture.startTime,
-                  style: AppTextStyles.label
+                  style: text.label
                       .copyWith(color: color, fontSize: 13)),
               Text(lecture.formattedDuration,
-                  style: AppTextStyles.caption),
+                  style: text.caption),
             ],
           ),
         ],
@@ -1909,17 +2157,19 @@ class _DetailChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
+    final text = context.text;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: AppColors.surfaceElevated,
+        color: colors.surfaceElevated,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: AppColors.surfaceBorder, width: 0.5),
+        border: Border.all(color: colors.surfaceBorder, width: 0.5),
       ),
       child: Row(mainAxisSize: MainAxisSize.min, children: [
-        Icon(icon, size: 12, color: AppColors.textMuted),
+        Icon(icon, size: 12, color: colors.textMuted),
         const SizedBox(width: 4),
-        Text(label, style: AppTextStyles.caption),
+        Text(label, style: text.caption),
       ]),
     );
   }
@@ -1975,6 +2225,8 @@ class _NotifSettingRowState extends State<_NotifSettingRow> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
+    final text = context.text;
     return Row(children: [
       Container(
         padding: const EdgeInsets.all(8),
@@ -1990,21 +2242,21 @@ class _NotifSettingRowState extends State<_NotifSettingRow> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(widget.title,
-                style: AppTextStyles.body.copyWith(fontWeight: FontWeight.w600)),
-            Text(widget.subtitle, style: AppTextStyles.caption),
+                style: text.body.copyWith(fontWeight: FontWeight.w600)),
+            Text(widget.subtitle, style: text.caption),
           ],
         ),
       ),
       if (_loading)
-        const SizedBox(
+        SizedBox(
           width: 20, height: 20,
           child: CircularProgressIndicator(strokeWidth: 2,
-              color: AppColors.accent),
+              color: colors.accent),
         )
       else
         Switch(
           value: _val,
-          activeColor: AppColors.accent,
+          activeColor: colors.accent,
           onChanged: _toggle,
         ),
     ]);

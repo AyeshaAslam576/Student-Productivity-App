@@ -77,7 +77,10 @@ class AiSession {
     return AiSession(
       id: map['id'] as String? ?? '',
       userId: map['userId'] as String? ?? '',
-      type: SessionType.values.byName(map['type'] as String? ?? 'summarizer'),
+      type: SessionType.values.firstWhere(
+        (e) => e.name == (map['type'] as String?),
+        orElse: () => SessionType.chatbot,
+      ),
       inputSource: map['inputSource'] as String? ?? InputSource.pastedText.name,
       originalInput: map['originalInput'] as String? ?? '',
       output: map['output'] as String? ?? '',

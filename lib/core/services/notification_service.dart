@@ -1,5 +1,6 @@
 import 'dart:typed_data';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:timezone/timezone.dart' as tz;
 import 'package:timezone/data/latest.dart' as tz_data;
 import 'notification_plugin.dart';
@@ -11,12 +12,25 @@ class NotificationService {
   static Future<void> initialize() async {
     if (_initialized) return;
     tz_data.initializeTimeZones();
-    // Do not call [_plugin.initialize] here — [LectureNotificationService]
-    // owns the single initialization (foreground + background handlers).
+    try {
+      final timezoneName = await FlutterTimezone.getLocalTimezone();
+      tz.setLocalLocation(tz.getLocation(timezoneName));
+    } catch (_) {
+      // LectureNotificationService may set this later; fall back to UTC.
+    }
 
-    final androidPlugin = _plugin
-        .resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin>();
+    const android = AndroidInitializationSettings('@mipmap/ic_launcher');
+    const ios = DarwinInitializationSettings(
+      requestAlertPermission: false,
+      requestBadgePermission: false,
+      requestSoundPermission: false,
+    );
+    await _plugin.initialize(
+      const InitializationSettings(android: android, iOS: ios),
+    );
+
+    final androidPlugin = _plugin.resolvePlatformSpecificImplementation<
+        AndroidFlutterLocalNotificationsPlugin>();
 
     final channel = AndroidNotificationChannel(
       'task_reminders',
@@ -32,17 +46,39 @@ class NotificationService {
     _initialized = true;
   }
 
+  /// Request POST_NOTIFICATIONS on Android 13+ (no-op if already granted).
+  static Future<bool> ensurePermissions() async {
+    if (!_initialized) await initialize();
+    final android = _plugin.resolvePlatformSpecificImplementation<
+        AndroidFlutterLocalNotificationsPlugin>();
+    return await android?.requestNotificationsPermission() ?? true;
+  }
+
   static Future<void> scheduleTaskReminder({
     required int id,
     required String taskTitle,
     required String subjectName,
     required DateTime dueDate,
     required String priority,
+    DateTime? customReminderTime,
   }) async {
     if (!_initialized) await initialize();
 
+    final now = DateTime.now();
+
+    // User-selected reminder chip (1h / 3h / 1 day before due)
+    if (customReminderTime != null && customReminderTime.isAfter(now)) {
+      await _scheduleOne(
+        id: id + 3,
+        title: '🔔 Task reminder',
+        body: '$taskTitle ($subjectName)',
+        scheduledDate: customReminderTime,
+        priority: priority,
+      );
+    }
+
     // At due time
-    if (dueDate.isAfter(DateTime.now())) {
+    if (dueDate.isAfter(now)) {
       await _scheduleOne(
         id: id,
         title: '📚 $subjectName — Due Now',
@@ -54,7 +90,7 @@ class NotificationService {
 
     // 1 hour before
     final oneHourBefore = dueDate.subtract(const Duration(hours: 1));
-    if (oneHourBefore.isAfter(DateTime.now())) {
+    if (oneHourBefore.isAfter(now)) {
       await _scheduleOne(
         id: id + 1,
         title: '⏰ Due in 1 hour',
@@ -66,7 +102,7 @@ class NotificationService {
 
     // 24 hours before
     final dayBefore = dueDate.subtract(const Duration(hours: 24));
-    if (dayBefore.isAfter(DateTime.now())) {
+    if (dayBefore.isAfter(now)) {
       await _scheduleOne(
         id: id + 2,
         title: '📋 Due tomorrow',
@@ -117,6 +153,7 @@ class NotificationService {
     await _plugin.cancel(notificationId);
     await _plugin.cancel(notificationId + 1);
     await _plugin.cancel(notificationId + 2);
+    await _plugin.cancel(notificationId + 3);
   }
 
   static Future<void> cancelAll() async => _plugin.cancelAll();

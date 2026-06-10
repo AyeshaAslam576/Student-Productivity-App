@@ -4,8 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_palette.dart';
 import '../../../../core/theme/app_spacing.dart';
-import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/widgets/brainup_button.dart';
 import '../../../../core/widgets/brainup_card.dart';
 import '../../models/document_model.dart';
@@ -31,17 +31,18 @@ class DocumentCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return Dismissible(
       key: ValueKey('doc-card-${document.id}'),
       direction: DismissDirection.horizontal,
       background: _SwipeBackground(
-        color: AppColors.warning,
+        color: colors.warning,
         icon: Icons.star_rounded,
         alignment: Alignment.centerLeft,
         label: document.isFavorite ? 'Unfavorite' : 'Favorite',
       ),
-      secondaryBackground: const _SwipeBackground(
-        color: AppColors.error,
+      secondaryBackground: _SwipeBackground(
+        color: colors.error,
         icon: Icons.delete_rounded,
         alignment: Alignment.centerRight,
         label: 'Delete',
@@ -75,7 +76,7 @@ class DocumentCard extends StatelessWidget {
                       document.title,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: AppTextStyles.h5.copyWith(fontSize: 15),
+                      style: context.text.h5.copyWith(fontSize: 15),
                     ),
                     const SizedBox(height: 3),
                     _SubtitleRow(document: document),
@@ -86,9 +87,9 @@ class DocumentCard extends StatelessWidget {
               ),
               IconButton(
                 onPressed: () => _showContextMenu(context),
-                icon: const Icon(
+                icon: Icon(
                   Icons.more_vert_rounded,
-                  color: AppColors.textSecondary,
+                  color: colors.textSecondary,
                   size: 20,
                 ),
                 padding: EdgeInsets.zero,
@@ -107,105 +108,106 @@ class DocumentCard extends StatelessWidget {
     showModalBottomSheet<void>(
       context: context,
       backgroundColor: Colors.transparent,
-      builder: (sheetCtx) => Container(
-        padding: const EdgeInsets.fromLTRB(8, 12, 8, 28),
-        decoration: const BoxDecoration(
-          color: AppColors.surfaceCard,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Center(
-              child: Container(
-                width: 36,
-                height: 4,
-                margin: const EdgeInsets.only(bottom: 14),
-                decoration: BoxDecoration(
-                  color: AppColors.surfaceBorder,
-                  borderRadius: BorderRadius.circular(2),
+      builder: (sheetCtx) {
+        final colors = sheetCtx.colors;
+        return Container(
+          padding: const EdgeInsets.fromLTRB(8, 12, 8, 28),
+          decoration: BoxDecoration(
+            color: colors.surfaceCard,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Center(
+                child: Container(
+                  width: 36,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 14),
+                  decoration: BoxDecoration(
+                    color: colors.surfaceBorder,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
                 ),
               ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      document.title,
-                      style: AppTextStyles.h5,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        document.title,
+                        style: sheetCtx.text.h5,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-            const Divider(color: AppColors.surfaceBorder, height: 1),
-            _MenuTile(
-              icon: Icons.open_in_new_rounded,
-              label: 'Open',
-              onTap: () {
-                Navigator.pop(sheetCtx);
-                onTap?.call();
-              },
-            ),
-            _MenuTile(
-              icon: Icons.share_rounded,
-              label: 'Share',
-              iconColor: AppColors.accent,
-              onTap: () {
-                Navigator.pop(sheetCtx);
-                final vm = context.read<DocumentViewModel>();
-                onShare != null
-                    ? onShare!()
-                    : vm.shareDocument(document);
-              },
-            ),
-            _MenuTile(
-              icon: Icons.drive_file_rename_outline_rounded,
-              label: 'Rename',
-              onTap: () {
-                Navigator.pop(sheetCtx);
-                _showRenameDialog(context);
-              },
-            ),
-            _MenuTile(
-              icon: Icons.folder_open_rounded,
-              label: 'Move to Folder',
-              onTap: () {
-                Navigator.pop(sheetCtx);
-                _showMoveFolderSheet(
-                  context,
-                  document,
-                  context.read<DocumentViewModel>(),
-                );
-              },
-            ),
-            _MenuTile(
-              icon: Icons.psychology_rounded,
-              label: 'Analyze with AI',
-              iconColor: AppColors.info,
-              onTap: () {
-                Navigator.pop(sheetCtx);
-                onAnalyze?.call();
-              },
-            ),
-            _MenuTile(
-              icon: Icons.delete_outline_rounded,
-              label: 'Delete',
-              iconColor: AppColors.error,
-              labelColor: AppColors.error,
-              onTap: () async {
-                Navigator.pop(sheetCtx);
-                final ok = await _confirmDelete(context);
-                if (ok) onDelete?.call();
-              },
-            ),
-          ],
-        ),
-      ),
+              Divider(color: colors.surfaceBorder, height: 1),
+              _MenuTile(
+                icon: Icons.open_in_new_rounded,
+                label: 'Open',
+                onTap: () {
+                  Navigator.pop(sheetCtx);
+                  onTap?.call();
+                },
+              ),
+              _MenuTile(
+                icon: Icons.share_rounded,
+                label: 'Share',
+                iconColor: colors.accent,
+                onTap: () {
+                  Navigator.pop(sheetCtx);
+                  final vm = context.read<DocumentViewModel>();
+                  onShare != null ? onShare!() : vm.shareDocument(document);
+                },
+              ),
+              _MenuTile(
+                icon: Icons.drive_file_rename_outline_rounded,
+                label: 'Rename',
+                onTap: () {
+                  Navigator.pop(sheetCtx);
+                  _showRenameDialog(context);
+                },
+              ),
+              _MenuTile(
+                icon: Icons.folder_open_rounded,
+                label: 'Move to Folder',
+                onTap: () {
+                  Navigator.pop(sheetCtx);
+                  _showMoveFolderSheet(
+                    context,
+                    document,
+                    context.read<DocumentViewModel>(),
+                  );
+                },
+              ),
+              _MenuTile(
+                icon: Icons.psychology_rounded,
+                label: 'Analyze with AI',
+                iconColor: colors.info,
+                onTap: () {
+                  Navigator.pop(sheetCtx);
+                  onAnalyze?.call();
+                },
+              ),
+              _MenuTile(
+                icon: Icons.delete_outline_rounded,
+                label: 'Delete',
+                iconColor: colors.error,
+                labelColor: colors.error,
+                onTap: () async {
+                  Navigator.pop(sheetCtx);
+                  final ok = await _confirmDelete(context);
+                  if (ok) onDelete?.call();
+                },
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -216,63 +218,66 @@ class DocumentCard extends StatelessWidget {
     final vm = context.read<DocumentViewModel>();
     final newTitle = await showDialog<String?>(
       context: context,
-      builder: (dialogCtx) => AlertDialog(
-        backgroundColor: AppColors.surfaceCard,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
-        ),
-        title: Text('Rename document', style: AppTextStyles.h4),
-        content: TextField(
-          controller: ctrl,
-          autofocus: true,
-          maxLines: 1,
-          style: AppTextStyles.body,
-          textInputAction: TextInputAction.done,
-          onSubmitted: (v) => Navigator.pop(dialogCtx, v.trim()),
-          cursorColor: AppColors.accent,
-          decoration: InputDecoration(
-            hintText: 'New name',
-            hintStyle: AppTextStyles.body.copyWith(color: AppColors.textMuted),
-            filled: true,
-            fillColor: AppColors.surfaceElevated,
-            contentPadding:
-                const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-              borderSide: const BorderSide(color: AppColors.surfaceBorder),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-              borderSide: const BorderSide(color: AppColors.surfaceBorder),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
-              borderSide:
-                  const BorderSide(color: AppColors.accent, width: 1.5),
-            ),
+      builder: (dialogCtx) {
+        final colors = dialogCtx.colors;
+        return AlertDialog(
+          backgroundColor: colors.surfaceCard,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
           ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogCtx, null),
-            child: Text(
-              'Cancel',
-              style:
-                  AppTextStyles.body.copyWith(color: AppColors.textSecondary),
-            ),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(dialogCtx, ctrl.text.trim()),
-            child: Text(
-              'Save',
-              style: AppTextStyles.body.copyWith(
-                color: AppColors.accent,
-                fontWeight: FontWeight.w600,
+          title: Text('Rename document', style: dialogCtx.text.h4),
+          content: TextField(
+            controller: ctrl,
+            autofocus: true,
+            maxLines: 1,
+            style: dialogCtx.text.body,
+            textInputAction: TextInputAction.done,
+            onSubmitted: (v) => Navigator.pop(dialogCtx, v.trim()),
+            cursorColor: colors.accent,
+            decoration: InputDecoration(
+              hintText: 'New name',
+              hintStyle:
+                  dialogCtx.text.body.copyWith(color: colors.textMuted),
+              filled: true,
+              fillColor: colors.surfaceElevated,
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                borderSide: BorderSide(color: colors.surfaceBorder),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                borderSide: BorderSide(color: colors.surfaceBorder),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(AppSpacing.radiusMd),
+                borderSide: BorderSide(color: colors.accent, width: 1.5),
               ),
             ),
           ),
-        ],
-      ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogCtx, null),
+              child: Text(
+                'Cancel',
+                style: dialogCtx.text.body
+                    .copyWith(color: colors.textSecondary),
+              ),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(dialogCtx, ctrl.text.trim()),
+              child: Text(
+                'Save',
+                style: dialogCtx.text.body.copyWith(
+                  color: colors.accent,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
     );
     if (newTitle == null || newTitle.isEmpty || newTitle == document.title) {
       return;
@@ -294,48 +299,52 @@ class DocumentCard extends StatelessWidget {
   Future<bool> _confirmDelete(BuildContext context) async {
     final result = await showDialog<bool>(
       context: context,
-      builder: (dialogCtx) => AlertDialog(
-        backgroundColor: AppColors.surfaceCard,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
-        ),
-        icon: const Icon(
-          Icons.delete_outline_rounded,
-          color: AppColors.error,
-          size: 36,
-        ),
-        title: Text(
-          'Delete document?',
-          style: AppTextStyles.h4,
-          textAlign: TextAlign.center,
-        ),
-        content: Text(
-          '"${document.title}" will be removed permanently. This cannot be undone.',
-          style: AppTextStyles.body.copyWith(color: AppColors.textSecondary),
-          textAlign: TextAlign.center,
-        ),
-        actionsAlignment: MainAxisAlignment.spaceBetween,
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogCtx, false),
-            child: Text(
-              'Cancel',
-              style:
-                  AppTextStyles.body.copyWith(color: AppColors.textSecondary),
-            ),
+      builder: (dialogCtx) {
+        final colors = dialogCtx.colors;
+        return AlertDialog(
+          backgroundColor: colors.surfaceCard,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppSpacing.radiusLg),
           ),
-          TextButton(
-            onPressed: () => Navigator.pop(dialogCtx, true),
-            child: Text(
-              'Delete',
-              style: AppTextStyles.body.copyWith(
-                color: AppColors.error,
-                fontWeight: FontWeight.w600,
+          icon: Icon(
+            Icons.delete_outline_rounded,
+            color: colors.error,
+            size: 36,
+          ),
+          title: Text(
+            'Delete document?',
+            style: dialogCtx.text.h4,
+            textAlign: TextAlign.center,
+          ),
+          content: Text(
+            '"${document.title}" will be removed permanently. This cannot be undone.',
+            style:
+                dialogCtx.text.body.copyWith(color: colors.textSecondary),
+            textAlign: TextAlign.center,
+          ),
+          actionsAlignment: MainAxisAlignment.spaceBetween,
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogCtx, false),
+              child: Text(
+                'Cancel',
+                style: dialogCtx.text.body
+                    .copyWith(color: colors.textSecondary),
               ),
             ),
-          ),
-        ],
-      ),
+            TextButton(
+              onPressed: () => Navigator.pop(dialogCtx, true),
+              child: Text(
+                'Delete',
+                style: dialogCtx.text.body.copyWith(
+                  color: colors.error,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
     );
     return result == true;
   }
@@ -355,178 +364,182 @@ class DocumentCard extends StatelessWidget {
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
       builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setState) => Padding(
-          padding:
-              EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
-          child: Container(
-            padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
-            decoration: const BoxDecoration(
-              color: AppColors.surfaceCard,
-              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Center(
-                  child: Container(
-                    width: 40,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: AppColors.surfaceBorder,
-                      borderRadius: BorderRadius.circular(2),
+        builder: (ctx, setState) {
+          final colors = ctx.colors;
+          return Padding(
+            padding:
+                EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
+            child: Container(
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+              decoration: BoxDecoration(
+                color: colors.surfaceCard,
+                borderRadius:
+                    const BorderRadius.vertical(top: Radius.circular(24)),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: colors.surfaceBorder,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
                     ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Row(children: [
-                  const Icon(
-                    Icons.folder_open_rounded,
-                    color: AppColors.accent,
-                    size: 20,
-                  ),
-                  const SizedBox(width: 8),
-                  Text('Move to folder', style: AppTextStyles.h4),
-                ]),
-                const SizedBox(height: 4),
-                Text(
-                  'Current folder: ${doc.folder}',
-                  style: AppTextStyles.caption
-                      .copyWith(color: AppColors.textMuted),
-                ),
-                const SizedBox(height: 16),
-                if (existingFolders.isNotEmpty) ...[
-                  Text(
-                    'Existing folders',
-                    style: AppTextStyles.bodySmall
-                        .copyWith(color: AppColors.textMuted),
-                  ),
-                  const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: existingFolders.map((f) {
-                      final isCurrent = f == doc.folder;
-                      return GestureDetector(
-                        onTap: isCurrent
-                            ? null
-                            : () async {
-                                Navigator.pop(ctx);
-                                await vm.moveDocumentToFolder(doc, f);
-                                if (context.mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text('Moved to "$f"'),
-                                    ),
-                                  );
-                                }
-                              },
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 14,
-                            vertical: 8,
-                          ),
-                          decoration: BoxDecoration(
-                            color: isCurrent
-                                ? AppColors.accent.withOpacity(0.15)
-                                : AppColors.surfaceElevated,
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(
-                              color: isCurrent
-                                  ? AppColors.accent
-                                  : AppColors.surfaceBorder,
-                            ),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                Icons.folder_rounded,
-                                size: 14,
-                                color: isCurrent
-                                    ? AppColors.accent
-                                    : AppColors.textMuted,
-                              ),
-                              const SizedBox(width: 6),
-                              Text(
-                                f,
-                                style: AppTextStyles.caption.copyWith(
-                                  color: isCurrent
-                                      ? AppColors.accent
-                                      : AppColors.textPrimary,
-                                  fontWeight: isCurrent
-                                      ? FontWeight.w600
-                                      : FontWeight.w500,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      );
-                    }).toList(),
                   ),
                   const SizedBox(height: 16),
-                ],
-                Text(
-                  'New folder',
-                  style: AppTextStyles.bodySmall
-                      .copyWith(color: AppColors.textMuted),
-                ),
-                const SizedBox(height: 8),
-                Row(children: [
-                  Expanded(
-                    child: TextField(
-                      controller: folderCtrl,
-                      style: AppTextStyles.body,
-                      decoration: InputDecoration(
-                        hintText: 'e.g. Physics, Assignments…',
-                        hintStyle: AppTextStyles.body
-                            .copyWith(color: AppColors.textMuted),
-                        filled: true,
-                        fillColor: AppColors.surfaceElevated,
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: 12,
-                        ),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(
-                            color: AppColors.surfaceBorder,
-                          ),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(
-                            color: AppColors.surfaceBorder,
-                          ),
-                        ),
-                      ),
-                      onChanged: (_) => setState(() {}),
+                  Row(children: [
+                    Icon(
+                      Icons.folder_open_rounded,
+                      color: colors.accent,
+                      size: 20,
                     ),
+                    const SizedBox(width: 8),
+                    Text('Move to folder', style: ctx.text.h4),
+                  ]),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Current folder: ${doc.folder}',
+                    style:
+                        ctx.text.caption.copyWith(color: colors.textMuted),
                   ),
-                  const SizedBox(width: 10),
-                  BrainUpButton(
-                    label: 'Move',
-                    onTap: folderCtrl.text.trim().isEmpty
-                        ? null
-                        : () async {
-                            final name = folderCtrl.text.trim();
-                            Navigator.pop(ctx);
-                            await vm.moveDocumentToFolder(doc, name);
-                            if (context.mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text('Moved to "$name"'),
+                  const SizedBox(height: 16),
+                  if (existingFolders.isNotEmpty) ...[
+                    Text(
+                      'Existing folders',
+                      style: ctx.text.bodySmall
+                          .copyWith(color: colors.textMuted),
+                    ),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: existingFolders.map((f) {
+                        final isCurrent = f == doc.folder;
+                        return GestureDetector(
+                          onTap: isCurrent
+                              ? null
+                              : () async {
+                                  Navigator.pop(ctx);
+                                  await vm.moveDocumentToFolder(doc, f);
+                                  if (context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text('Moved to "$f"'),
+                                      ),
+                                    );
+                                  }
+                                },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 8,
+                            ),
+                            decoration: BoxDecoration(
+                              color: isCurrent
+                                  ? colors.accent.withOpacity(0.15)
+                                  : colors.surfaceElevated,
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(
+                                color: isCurrent
+                                    ? colors.accent
+                                    : colors.surfaceBorder,
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.folder_rounded,
+                                  size: 14,
+                                  color: isCurrent
+                                      ? colors.accent
+                                      : colors.textMuted,
                                 ),
-                              );
-                            }
-                          },
+                                const SizedBox(width: 6),
+                                Text(
+                                  f,
+                                  style: ctx.text.caption.copyWith(
+                                    color: isCurrent
+                                        ? colors.accent
+                                        : colors.textPrimary,
+                                    fontWeight: isCurrent
+                                        ? FontWeight.w600
+                                        : FontWeight.w500,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                    const SizedBox(height: 16),
+                  ],
+                  Text(
+                    'New folder',
+                    style: ctx.text.bodySmall
+                        .copyWith(color: colors.textMuted),
                   ),
-                ]),
-              ],
+                  const SizedBox(height: 8),
+                  Row(children: [
+                    Expanded(
+                      child: TextField(
+                        controller: folderCtrl,
+                        style: ctx.text.body,
+                        decoration: InputDecoration(
+                          hintText: 'e.g. Physics, Assignments…',
+                          hintStyle: ctx.text.body
+                              .copyWith(color: colors.textMuted),
+                          filled: true,
+                          fillColor: colors.surfaceElevated,
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 12,
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(
+                              color: colors.surfaceBorder,
+                            ),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(
+                              color: colors.surfaceBorder,
+                            ),
+                          ),
+                        ),
+                        onChanged: (_) => setState(() {}),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    BrainUpButton(
+                      label: 'Move',
+                      onTap: folderCtrl.text.trim().isEmpty
+                          ? null
+                          : () async {
+                              final name = folderCtrl.text.trim();
+                              Navigator.pop(ctx);
+                              await vm.moveDocumentToFolder(doc, name);
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text('Moved to "$name"'),
+                                  ),
+                                );
+                              }
+                            },
+                    ),
+                  ]),
+                ],
+              ),
             ),
-          ),
-        ),
+          );
+        },
       ),
     );
   }
@@ -551,16 +564,17 @@ class _Leading extends StatelessWidget {
     }
   }
 
-  Color get _typeColor {
+  Color _typeColor(BuildContext context) {
+    final colors = context.colors;
     switch (document.type) {
       case DocumentType.pdf:
-        return AppColors.error;
+        return colors.error;
       case DocumentType.image:
-        return AppColors.info;
+        return colors.info;
       case DocumentType.scanned:
-        return AppColors.accent;
+        return colors.accent;
       case DocumentType.generated:
-        return AppColors.success;
+        return colors.success;
     }
   }
 
@@ -578,23 +592,24 @@ class _Leading extends StatelessWidget {
             height: 58,
             fit: BoxFit.cover,
             cacheWidth: 92,
-            errorBuilder: (_, __, ___) => _iconFallback(),
+            errorBuilder: (_, __, ___) => _iconFallback(context),
           ),
         );
       }
     }
-    return _iconFallback();
+    return _iconFallback(context);
   }
 
-  Widget _iconFallback() {
+  Widget _iconFallback(BuildContext context) {
+    final color = _typeColor(context);
     return Container(
       width: 46,
       height: 46,
       decoration: BoxDecoration(
-        color: _typeColor.withOpacity(0.14),
+        color: color.withOpacity(0.14),
         borderRadius: BorderRadius.circular(13),
       ),
-      child: Icon(_typeIcon, color: _typeColor),
+      child: Icon(_typeIcon, color: color),
     );
   }
 }
@@ -607,10 +622,10 @@ class _SubtitleRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final dot = Text(
-      ' · ',
-      style: AppTextStyles.caption.copyWith(color: AppColors.textMuted),
-    );
+    final colors = context.colors;
+    final captionMuted =
+        context.text.caption.copyWith(color: colors.textMuted);
+    final dot = Text(' · ', style: captionMuted);
     return Row(
       children: [
         Flexible(
@@ -618,21 +633,18 @@ class _SubtitleRow extends StatelessWidget {
             document.formattedDate,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: AppTextStyles.caption.copyWith(color: AppColors.textMuted),
+            style: captionMuted,
           ),
         ),
         dot,
-        Text(
-          document.formattedSize,
-          style: AppTextStyles.caption.copyWith(color: AppColors.textMuted),
-        ),
+        Text(document.formattedSize, style: captionMuted),
         dot,
         Flexible(
           child: Text(
             document.pageCountLabel,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: AppTextStyles.caption.copyWith(color: AppColors.textMuted),
+            style: captionMuted,
           ),
         ),
       ],
@@ -648,6 +660,7 @@ class _TagRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return Row(
       children: [
         if (document.subjectTag != null) ...[
@@ -664,7 +677,7 @@ class _TagRow extends StatelessWidget {
                 document.subjectTag!,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: AppTextStyles.caption,
+                style: context.text.caption,
               ),
             ),
           ),
@@ -674,16 +687,16 @@ class _TagRow extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
             decoration: BoxDecoration(
-              color: AppColors.success.withOpacity(0.15),
+              color: colors.success.withOpacity(0.15),
               borderRadius: BorderRadius.circular(4),
               border: Border.all(
-                color: AppColors.success.withOpacity(0.4),
+                color: colors.success.withOpacity(0.4),
               ),
             ),
             child: Text(
               'OCR',
-              style: AppTextStyles.caption.copyWith(
-                color: AppColors.success,
+              style: context.text.caption.copyWith(
+                color: colors.success,
                 fontSize: 10,
                 fontWeight: FontWeight.w600,
               ),
@@ -694,24 +707,24 @@ class _TagRow extends StatelessWidget {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
           decoration: BoxDecoration(
-            color: AppColors.surfaceElevated,
+            color: colors.surfaceElevated,
             borderRadius: BorderRadius.circular(4),
-            border: Border.all(color: AppColors.surfaceBorder, width: 0.5),
+            border: Border.all(color: colors.surfaceBorder, width: 0.5),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(
+              Icon(
                 Icons.phone_android_rounded,
                 size: 9,
-                color: AppColors.textMuted,
+                color: colors.textMuted,
               ),
               const SizedBox(width: 3),
               Text(
                 'Local',
-                style: AppTextStyles.caption.copyWith(
+                style: context.text.caption.copyWith(
                   fontSize: 9,
-                  color: AppColors.textMuted,
+                  color: colors.textMuted,
                 ),
               ),
             ],
@@ -719,10 +732,10 @@ class _TagRow extends StatelessWidget {
         ),
         const Spacer(),
         if (document.isFavorite)
-          const Icon(
+          Icon(
             Icons.star_rounded,
             size: 13,
-            color: AppColors.warning,
+            color: colors.warning,
           ),
       ],
     );
@@ -764,7 +777,7 @@ class _SwipeBackground extends StatelessWidget {
           if (isLeft) const SizedBox(width: 8),
           Text(
             label,
-            style: AppTextStyles.button.copyWith(
+            style: context.text.button.copyWith(
               color: Colors.white,
               fontSize: 14,
             ),
@@ -796,15 +809,16 @@ class _MenuTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return ListTile(
       leading: Icon(
         icon,
-        color: iconColor ?? AppColors.textSecondary,
+        color: iconColor ?? colors.textSecondary,
       ),
       title: Text(
         label,
-        style: AppTextStyles.body.copyWith(
-          color: labelColor ?? AppColors.textPrimary,
+        style: context.text.body.copyWith(
+          color: labelColor ?? colors.textPrimary,
         ),
       ),
       onTap: onTap,

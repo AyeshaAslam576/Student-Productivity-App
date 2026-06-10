@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import '../theme/app_colors.dart';
-import '../theme/app_text_styles.dart';
+import '../theme/app_palette.dart';
 import '../theme/app_spacing.dart';
 import 'brainup_button.dart';
 
@@ -12,6 +11,7 @@ class BrainUpErrorState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.colors;
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(AppSpacing.xxxl),
@@ -23,20 +23,20 @@ class BrainUpErrorState extends StatelessWidget {
               height: 88,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: AppColors.error.withOpacity(0.1),
+                color: colors.error.withValues(alpha: 0.1),
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.error_outline_rounded,
                 size: 44,
-                color: AppColors.error,
+                color: colors.error,
               ),
             ),
             const SizedBox(height: 20),
-            Text('Something went wrong', style: AppTextStyles.h4),
+            Text('Something went wrong', style: context.text.h4),
             const SizedBox(height: 8),
             Text(
               message ?? 'An unexpected error occurred. Please try again.',
-              style: AppTextStyles.bodySmall,
+              style: context.text.bodySmall,
               textAlign: TextAlign.center,
             ),
             if (onRetry != null) ...[
