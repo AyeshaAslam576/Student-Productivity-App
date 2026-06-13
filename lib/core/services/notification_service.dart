@@ -16,18 +16,14 @@ class NotificationService {
       final timezoneName = await FlutterTimezone.getLocalTimezone();
       tz.setLocalLocation(tz.getLocation(timezoneName));
     } catch (_) {
-      // LectureNotificationService may set this later; fall back to UTC.
+      // LectureNotificationService owns plugin.initialize(); timezone may
+      // already be set by the time this runs. Fall back to UTC if needed.
     }
 
-    const android = AndroidInitializationSettings('@mipmap/ic_launcher');
-    const ios = DarwinInitializationSettings(
-      requestAlertPermission: false,
-      requestBadgePermission: false,
-      requestSoundPermission: false,
-    );
-    await _plugin.initialize(
-      const InitializationSettings(android: android, iOS: ios),
-    );
+    // Do NOT call _plugin.initialize() here — LectureNotificationService
+    // already does the one-time initialization with the correct callbacks.
+    // Calling it a second time would overwrite the onDidReceiveNotificationResponse
+    // handler registered by LectureNotificationService.
 
     final androidPlugin = _plugin.resolvePlatformSpecificImplementation<
         AndroidFlutterLocalNotificationsPlugin>();
@@ -41,14 +37,19 @@ class NotificationService {
       enableVibration: true,
       vibrationPattern: Int64List.fromList([0, 250, 250, 250]),
     );
+    // createNotificationChannel is idempotent — safe to call even if
+    // LectureNotificationService already created this channel.
     await androidPlugin?.createNotificationChannel(channel);
 
     _initialized = true;
   }
 
-  /// Request POST_NOTIFICATIONS on Android 13+ (no-op if already granted).
+  /// Request POST_NOTIFICATIONS on Android 13+ and alert/badge/sound on iOS.
   static Future<bool> ensurePermissions() async {
     if (!_initialized) await initialize();
+    final ios = _plugin.resolvePlatformSpecificImplementation<
+        IOSFlutterLocalNotificationsPlugin>();
+    await ios?.requestPermissions(alert: true, badge: true, sound: true);
     final android = _plugin.resolvePlatformSpecificImplementation<
         AndroidFlutterLocalNotificationsPlugin>();
     return await android?.requestNotificationsPermission() ?? true;

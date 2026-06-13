@@ -135,7 +135,7 @@ class _FilterRow extends StatelessWidget {
                   selectedColor: AppColors.subjectColor(s),
                 ),
               )),
-          if (vm.filter != 'All' && vm.subjectFilter != null)
+          if (vm.subjectFilter != null || vm.filter != 'All')
             TextButton(
               onPressed: vm.clearAllFilters,
               style: TextButton.styleFrom(

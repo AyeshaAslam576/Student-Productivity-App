@@ -348,6 +348,7 @@ class TaskViewModel extends ChangeNotifier {
 
   void setFilter(String f) {
     _filter = f;
+    _subjectFilter = null;
     notifyListeners();
   }
 
