@@ -133,6 +133,48 @@ class AuthViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
+  // ─── Delete Account ───────────────────────────────────────────────────────
+
+  /// Deletes all user data from Firestore and removes the Firebase Auth
+  /// account. The caller must supply [password] for email/password users;
+  /// Google users are re-authenticated via a fresh Google sign-in triggered
+  /// inside [AuthRepository.deleteAccount].
+  ///
+  /// Returns `null` on success, or a user-facing error string on failure.
+  Future<String?> deleteAccount({String? password}) async {
+    _setLoading();
+    try {
+      await _repo.deleteAccount(password: password);
+      // Auth account is gone — mirror the signed-out state locally.
+      _user = null;
+      _state = AuthState.unauthenticated;
+      _error = null;
+      notifyListeners();
+      return null;
+    } on FirebaseAuthException catch (e) {
+      final msg = _mapDeleteError(e.code);
+      _setError(msg);
+      return msg;
+    } catch (e) {
+      final msg = e.toString().replaceFirst('Exception: ', '');
+      _setError(msg);
+      return msg;
+    }
+  }
+
+  String _mapDeleteError(String code) {
+    return switch (code) {
+      'wrong-password' || 'invalid-credential' =>
+        'Incorrect password. Please try again.',
+      'too-many-requests' => 'Too many attempts. Please wait and try again.',
+      'network-request-failed' => 'No internet connection.',
+      'sign_in_cancelled' => 'Google sign-in was cancelled.',
+      'requires-recent-login' =>
+        'Please sign out and sign back in before deleting your account.',
+      _ => 'Could not delete account. Please try again.',
+    };
+  }
+
   // ─── Password Reset ───────────────────────────────────────────────────────
 
   Future<bool> resetPassword(String email) async {

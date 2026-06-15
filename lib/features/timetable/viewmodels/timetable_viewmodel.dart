@@ -1,16 +1,15 @@
 import 'dart:convert';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
+import '../../../core/services/groq_service.dart';
 import '../models/lecture_model.dart';
 import '../repositories/timetable_repository.dart';
 import '../../../core/services/lecture_notification_service.dart';
 
 class TimetableViewModel extends ChangeNotifier {
   final TimetableRepository _repo;
-  final String groqApiKey;
 
-  TimetableViewModel(this._repo, {required this.groqApiKey}) {
+  TimetableViewModel(this._repo) {
     loadTimetable();
   }
 
@@ -137,31 +136,24 @@ TIMETABLE TEXT:
     notifyListeners();
     try {
       final base64Image = base64Encode(imageBytes);
-      final response = await http.post(
-        Uri.parse('https://api.groq.com/openai/v1/chat/completions'),
-        headers: {
-          'Authorization': 'Bearer $groqApiKey',
-          'Content-Type': 'application/json',
-        },
-        body: jsonEncode({
-          'model': 'meta-llama/llama-4-scout-17b-16e-instruct',
-          'messages': [
-            {
-              'role': 'user',
-              'content': [
-                {
-                  'type': 'image_url',
-                  'image_url': {'url': 'data:image/jpeg;base64,$base64Image'},
-                },
-                {'type': 'text', 'text': _imagePrompt},
-              ],
-            }
-          ],
-          'max_tokens': 8192,
-          'temperature': 0.05,
-        }),
+      final raw = await GroqService.chat(
+        model: 'meta-llama/llama-4-scout-17b-16e-instruct',
+        messages: [
+          {
+            'role': 'user',
+            'content': [
+              {
+                'type': 'image_url',
+                'image_url': {'url': 'data:image/jpeg;base64,$base64Image'},
+              },
+              {'type': 'text', 'text': _imagePrompt},
+            ],
+          }
+        ],
+        maxTokens: 8192,
+        temperature: 0.05,
       );
-      return _handleGroqResponse(response.statusCode, response.body);
+      return _handleGroqContent(raw);
     } catch (e) {
       _parseError = 'Failed to parse timetable: $e';
       _isParsing = false;
@@ -176,30 +168,23 @@ TIMETABLE TEXT:
     _parsedLectures = [];
     notifyListeners();
     try {
-      final response = await http.post(
-        Uri.parse('https://api.groq.com/openai/v1/chat/completions'),
-        headers: {
-          'Authorization': 'Bearer $groqApiKey',
-          'Content-Type': 'application/json',
-        },
-        body: jsonEncode({
-          'model': 'llama-3.3-70b-versatile',
-          'messages': [
-            {
-              'role': 'system',
-              'content':
-                  'You are a timetable parser. You ONLY output raw valid JSON arrays. Never add markdown, code fences, or any explanation.',
-            },
-            {
-              'role': 'user',
-              'content': '$_textPrompt$text',
-            },
-          ],
-          'max_tokens': 8192,
-          'temperature': 0.05,
-        }),
+      final content = await GroqService.chat(
+        model: 'llama-3.3-70b-versatile',
+        messages: [
+          {
+            'role': 'system',
+            'content':
+                'You are a timetable parser. You ONLY output raw valid JSON arrays. Never add markdown, code fences, or any explanation.',
+          },
+          {
+            'role': 'user',
+            'content': '$_textPrompt$text',
+          },
+        ],
+        maxTokens: 8192,
+        temperature: 0.05,
       );
-      return _handleGroqResponse(response.statusCode, response.body);
+      return _handleGroqContent(content);
     } catch (e) {
       _parseError = 'Parsing error: $e';
       _isParsing = false;
@@ -208,40 +193,30 @@ TIMETABLE TEXT:
     }
   }
 
-  bool _handleGroqResponse(int statusCode, String body) {
-    if (statusCode == 200) {
-      final data = jsonDecode(body);
-      final content =
-          data['choices']?[0]?['message']?['content'] as String? ?? '';
-      if (content.isEmpty) {
-        _parseError = 'No response from AI. Please try again.';
-        _isParsing = false;
-        notifyListeners();
-        return false;
-      }
-      final jsonStr = _extractJson(content);
-      final List<dynamic> list = jsonDecode(jsonStr);
-      _parsedLectures = list
-          .whereType<Map<String, dynamic>>()
-          .map((e) => LectureModel.fromJson(e))
-          .where((l) => l.subject.isNotEmpty && l.startTime.isNotEmpty)
-          .toList();
-      if (_parsedLectures.isEmpty) {
-        _parseError =
-            'No lectures found. Try a clearer image or use Text AI tab.';
-        _isParsing = false;
-        notifyListeners();
-        return false;
-      }
-      _isParsing = false;
-      notifyListeners();
-      return true;
-    } else {
-      _parseError = 'Groq error $statusCode: $body';
+  bool _handleGroqContent(String content) {
+    if (content.isEmpty) {
+      _parseError = 'No response from AI. Please try again.';
       _isParsing = false;
       notifyListeners();
       return false;
     }
+    final jsonStr = _extractJson(content);
+    final List<dynamic> list = jsonDecode(jsonStr);
+    _parsedLectures = list
+        .whereType<Map<String, dynamic>>()
+        .map((e) => LectureModel.fromJson(e))
+        .where((l) => l.subject.isNotEmpty && l.startTime.isNotEmpty)
+        .toList();
+    if (_parsedLectures.isEmpty) {
+      _parseError =
+          'No lectures found. Try a clearer image or use Text AI tab.';
+      _isParsing = false;
+      notifyListeners();
+      return false;
+    }
+    _isParsing = false;
+    notifyListeners();
+    return true;
   }
 
   String _extractJson(String text) {

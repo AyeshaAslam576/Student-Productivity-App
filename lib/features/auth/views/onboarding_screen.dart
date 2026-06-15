@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_palette.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/widgets/brainup_button.dart';
-import '../../../core/widgets/brainup_logo.dart';
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
@@ -84,10 +83,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           SafeArea(
             child: Column(
               children: [
-                const Padding(
-                  padding: EdgeInsets.only(top: 16),
-                  child: BrainUpLogo(size: 56),
-                ),
                 Expanded(
                   child: PageView.builder(
                     controller: _controller,

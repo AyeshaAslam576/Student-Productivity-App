@@ -1,0 +1,106 @@
+rules_version = '2';
+
+// ─── BrainUp Firestore Security Rules ────────────────────────────────────────
+//
+// Data model (all data lives under users/{userId}/):
+//
+//   users/{userId}                         — user profile
+//   users/{userId}/tasks/{taskId}          — tasks with reminders
+//   users/{userId}/attendance/{subjectId}  — per-subject attendance summary
+//     └── records/{recordId}               — individual attendance records
+//   users/{userId}/semesters/{semesterId}  — CGPA semester documents
+//     └── subjects/{subjectId}             — grades per subject per semester
+//   users/{userId}/ai_sessions/{sessionId} — AI tool sessions (chat/summary/grammar/TTS)
+//   users/{userId}/timetables/{timetableId} — timetable metadata
+//     └── lectures/{lectureId}             — individual lecture entries
+//   users/{userId}/study_sessions/{sessionId} — Pomodoro focus/break sessions
+//   users/{userId}/documents/{docId}       — scanned/uploaded document metadata
+//
+// Access policy:
+//   - Every read and write requires an authenticated user (request.auth != null).
+//   - Each user may only access their own data: the {userId} path segment must
+//     equal request.auth.uid.
+//   - All other paths are denied by the catch-all rule at the bottom.
+// ─────────────────────────────────────────────────────────────────────────────
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── Shared helper ─────────────────────────────────────────────────────────
+    // True only when the caller is signed in AND owns the {userId} path segment.
+    function isOwner(userId) {
+      return request.auth != null && request.auth.uid == userId;
+    }
+
+    // ── User profile ──────────────────────────────────────────────────────────
+    // Stores name, email, university, photoUrl, createdAt, target CGPA, etc.
+    // Written by AuthRepository and CgpaRepository.saveUserMeta.
+    match /users/{userId} {
+      allow read, write: if isOwner(userId);
+
+      // ── Tasks ──────────────────────────────────────────────────────────────
+      // CRUD + subtask toggle. TaskRepository uses this collection.
+      match /tasks/{taskId} {
+        allow read, write: if isOwner(userId);
+      }
+
+      // ── Attendance ─────────────────────────────────────────────────────────
+      // One document per subject (summary counters).
+      // Individual dated records stored in the nested records subcollection.
+      match /attendance/{subjectId} {
+        allow read, write: if isOwner(userId);
+
+        match /records/{recordId} {
+          allow read, write: if isOwner(userId);
+        }
+      }
+
+      // ── CGPA / Semesters ───────────────────────────────────────────────────
+      // One document per semester; subjects are a nested subcollection.
+      match /semesters/{semesterId} {
+        allow read, write: if isOwner(userId);
+
+        match /subjects/{subjectId} {
+          allow read, write: if isOwner(userId);
+        }
+      }
+
+      // ── AI Sessions ────────────────────────────────────────────────────────
+      // Persisted chatbot, summarizer, grammar, and TTS sessions.
+      // AiSessionRepository reads/writes this collection.
+      match /ai_sessions/{sessionId} {
+        allow read, write: if isOwner(userId);
+      }
+
+      // ── Timetables ─────────────────────────────────────────────────────────
+      // One active timetable document; lectures are a nested subcollection.
+      match /timetables/{timetableId} {
+        allow read, write: if isOwner(userId);
+
+        match /lectures/{lectureId} {
+          allow read, write: if isOwner(userId);
+        }
+      }
+
+      // ── Study Sessions ─────────────────────────────────────────────────────
+      // Pomodoro focus and break sessions saved by TimerRepository.
+      match /study_sessions/{sessionId} {
+        allow read, write: if isOwner(userId);
+      }
+
+      // ── Documents ──────────────────────────────────────────────────────────
+      // Metadata for scanned/imported PDFs and images (no binary upload —
+      // files are stored locally; only metadata goes to Firestore).
+      match /documents/{docId} {
+        allow read, write: if isOwner(userId);
+      }
+    }
+
+    // ── Deny everything else ──────────────────────────────────────────────────
+    // Any path not matched above (e.g. attempts to read another user's data
+    // via a direct path, or any collection that doesn't exist yet) is denied.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

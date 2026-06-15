@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'firebase_options.dart';
@@ -43,8 +42,6 @@ Future<void> main() async {
     statusBarColor: Colors.transparent,
   ));
 
-  await dotenv.load(fileName: '.env');
-
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
@@ -82,13 +79,11 @@ class _BrainUpAppState extends State<BrainUpApp> {
   // ViewModels — created once
   late final AuthViewModel _authVM;
   late final GoRouter _router;
-  late final String _groqKey;
   bool _incomingInitialized = false;
 
   @override
   void initState() {
     super.initState();
-    _groqKey = dotenv.env['GROQ_API_KEY'] ?? '';
     // AuthViewModel must exist before the router so refreshListenable works
     _authVM = AuthViewModel(_authRepo);
     // Router is created ONCE — refreshListenable drives redirect re-evaluation
@@ -109,7 +104,7 @@ class _BrainUpAppState extends State<BrainUpApp> {
               prev ?? HomeViewModel(_taskRepo, _attRepo),
         ),
         ChangeNotifierProvider(
-          create: (_) => TimetableViewModel(_ttRepo, groqApiKey: _groqKey),
+          create: (_) => TimetableViewModel(_ttRepo),
         ),
         ChangeNotifierProxyProvider<TimetableViewModel, TaskViewModel>(
           create: (_) => TaskViewModel(_taskRepo),
@@ -122,15 +117,14 @@ class _BrainUpAppState extends State<BrainUpApp> {
         ChangeNotifierProvider(
           create: (_) => CgpaViewModel(
             CgpaRepository(),
-            groqApiKey: _groqKey,
           ),
         ),
         ChangeNotifierProxyProvider<TimetableViewModel, AttendanceViewModel>(
           create: (_) =>
-              AttendanceViewModel(_attRepo, groqApiKey: _groqKey),
+              AttendanceViewModel(_attRepo),
           update: (_, timetable, previous) {
             final vm = previous ??
-                AttendanceViewModel(_attRepo, groqApiKey: _groqKey);
+                AttendanceViewModel(_attRepo);
             vm.syncSubjectsFromTimetable(timetable.subjects);
             return vm;
           },
@@ -143,7 +137,6 @@ class _BrainUpAppState extends State<BrainUpApp> {
               db: FirebaseFirestore.instance,
               userId: _authVM.user?.uid ?? 'guest',
             ),
-            groqApiKey: _groqKey,
           ),
           update: (_, auth, timetable, home, previous) {
             final repository = TimerRepository(
@@ -154,22 +147,19 @@ class _BrainUpAppState extends State<BrainUpApp> {
               final vm = TimerViewModel(
                 flutterLocalNotificationsPlugin,
                 repository,
-                groqApiKey: _groqKey,
               );
               vm.onSessionSaved = home.refreshStudyStats;
               vm.loadSubjectsFromTimetable(timetable.subjects);
               return vm;
             }
             previous.onSessionSaved = home.refreshStudyStats;
-            previous.updateDependencies(
-                repository: repository, groqApiKey: _groqKey);
+            previous.updateDependencies(repository: repository);
             previous.loadSubjectsFromTimetable(timetable.subjects);
             return previous;
           },
         ),
         ChangeNotifierProxyProvider<AuthViewModel, AiViewModel>(
           create: (_) => AiViewModel(
-            groqApiKey: _groqKey,
             sessionRepository: AiSessionRepository(
               db: FirebaseFirestore.instance,
               userId: _authVM.user?.uid ?? 'guest',
@@ -181,7 +171,6 @@ class _BrainUpAppState extends State<BrainUpApp> {
               return previous;
             }
             return AiViewModel(
-              groqApiKey: _groqKey,
               sessionRepository: AiSessionRepository(
                 db: FirebaseFirestore.instance,
                 userId: uid,

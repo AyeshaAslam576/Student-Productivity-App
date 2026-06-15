@@ -1,11 +1,9 @@
 import 'dart:convert';
 
-import 'package:http/http.dart' as http;
+import '../../../core/services/groq_service.dart';
 
 class DocAiService {
-  final String groqApiKey;
-
-  DocAiService({required this.groqApiKey});
+  const DocAiService();
 
   Future<DocAiAnalysis> analyzeDocument(String extractedText) async {
     final raw = await _chat(
@@ -21,9 +19,9 @@ class DocAiService {
   Future<String> chatWithDocument(
     String extractedText,
     String question,
-    List<Map<String, String>> history,
+    List<Map<String, dynamic>> history,
   ) async {
-    final messages = <Map<String, String>>[
+    final messages = <Map<String, dynamic>>[
       {
         'role': 'system',
         'content':
@@ -89,27 +87,14 @@ class DocAiService {
     ], maxTokens: maxTokens);
   }
 
-  Future<String> _chatRaw(List<Map<String, String>> messages,
+  Future<String> _chatRaw(List<Map<String, dynamic>> messages,
       {required int maxTokens}) async {
-    final response = await http.post(
-      Uri.parse('https://api.groq.com/openai/v1/chat/completions'),
-      headers: {
-        'Authorization': 'Bearer $groqApiKey',
-        'Content-Type': 'application/json',
-      },
-      body: jsonEncode({
-        'model': 'llama-3.3-70b-versatile',
-        'messages': messages,
-        'temperature': 0.2,
-        'max_tokens': maxTokens,
-      }),
+    return GroqService.chat(
+      model: 'llama-3.3-70b-versatile',
+      messages: messages,
+      maxTokens: maxTokens,
+      temperature: 0.2,
     );
-    if (response.statusCode != 200) {
-      throw Exception(
-          'Groq API error ${response.statusCode}: ${response.body}');
-    }
-    final data = jsonDecode(response.body) as Map<String, dynamic>;
-    return (data['choices'] as List).first['message']['content'] as String;
   }
 
   Map<String, dynamic> _extractJsonMap(String text) {

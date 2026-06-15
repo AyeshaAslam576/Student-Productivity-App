@@ -2,18 +2,17 @@ import 'dart:convert';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../../core/services/groq_service.dart';
 import '../models/semester_model.dart';
 import '../repositories/cgpa_repository.dart';
 
 class CgpaViewModel extends ChangeNotifier {
   final CgpaRepository _repo;
-  final String? _groqApiKey;
   static const _targetKey = 'brainup_target_cgpa';
   StreamSubscription<List<SemesterModel>>? _sub;
 
-  CgpaViewModel(this._repo, {String? groqApiKey}) : _groqApiKey = groqApiKey {
+  CgpaViewModel(this._repo) {
     _initStream();
     _loadTargetCgpa();
     _loadUserMeta();
@@ -148,7 +147,6 @@ class CgpaViewModel extends ChangeNotifier {
   }
 
   Future<void> generateMotivation(SemesterModel semester, double newCgpa) async {
-    if ((_groqApiKey ?? '').isEmpty) return;
     _isLoadingMotivation = true;
     notifyListeners();
     try {
@@ -166,27 +164,12 @@ Provide:
 3. One actionable goal for next semester
 Return as JSON: {"motivation": "...", "tips": ["...", "...", "..."], "goal": "..."}
       ''';
-      final response = await http.post(
-        Uri.parse('https://api.groq.com/openai/v1/chat/completions'),
-        headers: {
-          'Authorization': 'Bearer $_groqApiKey',
-          'Content-Type': 'application/json',
-        },
-        body: jsonEncode({
-          'model': 'llama-3.3-70b-versatile',
-          'messages': [
-            {'role': 'user', 'content': prompt}
-          ],
-          'max_tokens': 512,
-          'temperature': 0.7,
-        }),
+      final raw = await GroqService.chat(
+        model: 'llama-3.3-70b-versatile',
+        messages: [{'role': 'user', 'content': prompt}],
+        maxTokens: 512,
+        temperature: 0.7,
       );
-      if (response.statusCode != 200) {
-        throw Exception(
-            'Motivation API failed ${response.statusCode}: ${response.body}');
-      }
-      final data = jsonDecode(response.body) as Map<String, dynamic>;
-      final raw = data['choices']?[0]?['message']?['content'] as String? ?? '';
       final jsonStr = _extractJson(raw);
       final parsed = jsonDecode(jsonStr) as Map<String, dynamic>;
       _aiMotivation = parsed['motivation'] as String?;

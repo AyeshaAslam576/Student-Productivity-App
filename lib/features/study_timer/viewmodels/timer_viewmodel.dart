@@ -1,12 +1,11 @@
 import 'dart:async';
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:http/http.dart' as http;
 import 'package:just_audio/just_audio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:timezone/timezone.dart' as tz;
+import '../../../core/services/groq_service.dart';
 import '../models/study_session_model.dart';
 import '../models/timer_phase.dart';
 import '../repositories/timer_repository.dart';
@@ -14,7 +13,6 @@ import '../repositories/timer_repository.dart';
 class TimerViewModel extends ChangeNotifier with WidgetsBindingObserver {
   final FlutterLocalNotificationsPlugin _notifications;
   TimerRepository _repository;
-  String? _groqApiKey;
   final AudioPlayer _ambientPlayer = AudioPlayer();
   // Dedicated single-shot player for end-of-phase chime so it never collides
   // with the looping ambient track.
@@ -33,9 +31,8 @@ class TimerViewModel extends ChangeNotifier with WidgetsBindingObserver {
 
   TimerViewModel(
     this._notifications,
-    this._repository, {
-    String? groqApiKey,
-  }) : _groqApiKey = groqApiKey {
+    this._repository,
+  ) {
     WidgetsBinding.instance.addObserver(this);
     _bindSessionStream();
     loadStats();
@@ -262,7 +259,6 @@ class TimerViewModel extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   Future<void> generateCoachMessage() async {
-    if ((_groqApiKey ?? '').isEmpty) return;
     _isLoadingCoach = true;
     notifyListeners();
     try {
@@ -288,23 +284,12 @@ Give a SHORT 1-2 sentence coaching message that:
 Be warm, specific, and encouraging. Return plain text only, no JSON.
       ''';
 
-      final response = await http.post(
-        Uri.parse('https://api.groq.com/openai/v1/chat/completions'),
-        headers: {
-          'Authorization': 'Bearer $_groqApiKey',
-          'Content-Type': 'application/json',
-        },
-        body: jsonEncode({
-          'model': 'llama-3.3-70b-versatile',
-          'messages': [
-            {'role': 'user', 'content': prompt}
-          ],
-          'max_tokens': 100,
-          'temperature': 0.8,
-        }),
+      _aiCoachMessage = await GroqService.chat(
+        model: 'llama-3.3-70b-versatile',
+        messages: [{'role': 'user', 'content': prompt}],
+        maxTokens: 100,
+        temperature: 0.8,
       );
-      final data = jsonDecode(response.body);
-      _aiCoachMessage = data['choices'][0]['message']['content'] as String;
     } catch (_) {
       _aiCoachMessage =
           'Great session! Take a proper break - your brain needs rest to consolidate what you just learned.';
@@ -375,11 +360,9 @@ Be warm, specific, and encouraging. Return plain text only, no JSON.
 
   void updateDependencies({
     required TimerRepository repository,
-    String? groqApiKey,
   }) {
     final repoChanged = repository.userId != _repository.userId;
     _repository = repository;
-    _groqApiKey = groqApiKey;
     if (repoChanged) {
       _bindSessionStream();
       loadStats();

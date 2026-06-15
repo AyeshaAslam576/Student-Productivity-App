@@ -13,7 +13,6 @@ import '../../../core/theme/app_palette.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/widgets/brainup_card.dart';
 import '../../../core/widgets/brainup_button.dart';
-import '../../../core/widgets/brainup_logo.dart';
 import '../../../core/widgets/brainup_text_field.dart';
 import '../../auth/viewmodels/auth_viewmodel.dart';
 import '../../tasks/viewmodels/task_viewmodel.dart';
@@ -33,6 +32,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   bool _lectureNotifs = true;
   bool _taskNotifs = true;
   bool _studyNotifs = false;
+  bool _deletingAccount = false;
 
   @override
   void initState() {
@@ -490,8 +490,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     padding: const EdgeInsets.symmetric(vertical: 20),
                     child: Column(
                       children: [
-                        const BrainUpLogo(size: 64),
-                        const SizedBox(height: 12),
                         Text('BrainUp', style: context.text.h4),
                         Text('Study smarter.', style: context.text.caption),
                         const SizedBox(height: 16),
@@ -528,6 +526,31 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ],
                     ),
                   ).animate(delay: 350.ms).fadeIn(duration: 300.ms).slideY(begin: 0.05),
+
+                  const SizedBox(height: 32),
+                  // ─── Danger Zone ───────────────────────────────────────────
+                  _SectionTitle('Danger Zone'),
+                  BrainUpCard(
+                    padding: EdgeInsets.zero,
+                    child: _SettingTile(
+                      icon: Icons.person_off_outlined,
+                      title: 'Delete Account',
+                      color: colors.error,
+                      trailing: _deletingAccount
+                          ? SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: colors.error,
+                              ),
+                            )
+                          : null,
+                      onTap: _deletingAccount
+                          ? () {}
+                          : () => _showDeleteAccountWarning(context, auth),
+                    ),
+                  ).animate(delay: 400.ms).fadeIn(duration: 300.ms).slideY(begin: 0.05),
 
                   const SizedBox(height: 32),
                   BrainUpButton.secondary(
@@ -738,6 +761,185 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ),
       ),
     );
+  }
+  // ─── Delete Account Flow ─────────────────────────────────────────────────
+
+  /// Step 1 — plain warning dialog shown to ALL users.
+  void _showDeleteAccountWarning(BuildContext context, AuthViewModel auth) {
+    final colors = context.colors;
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: ctx.colors.surfaceCard,
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppSpacing.radiusLg)),
+        icon: Icon(Icons.warning_amber_rounded,
+            color: colors.error, size: 40),
+        title: Text('Delete Account', style: ctx.text.h4),
+        content: Text(
+          'This will permanently delete your account and ALL of your '
+          'data — tasks, attendance, CGPA, timetable, AI sessions, '
+          'documents, and study history.\n\n'
+          'This action cannot be undone.',
+          style: ctx.text.bodySmall
+              .copyWith(color: ctx.colors.textSecondary),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              // Step 2 — require credential confirmation.
+              if (auth.isEmailPasswordUser) {
+                _showEmailReauthDeleteSheet(context, auth);
+              } else {
+                _deleteWithGoogleReauth(context, auth);
+              }
+            },
+            child: Text(
+              'Continue',
+              style: ctx.text.body.copyWith(
+                color: ctx.colors.error,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Step 2a — for email/password users: enter password to confirm deletion.
+  void _showEmailReauthDeleteSheet(
+      BuildContext context, AuthViewModel auth) {
+    final passCtrl = TextEditingController();
+    final formKey = GlobalKey<FormState>();
+    bool obscure = true;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Padding(
+        padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
+        child: StatefulBuilder(
+          builder: (ctx, setSheetState) => Container(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+            decoration: BoxDecoration(
+              color: ctx.colors.surfaceCard,
+              borderRadius:
+                  const BorderRadius.vertical(top: Radius.circular(24)),
+            ),
+            child: Form(
+              key: formKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      margin: const EdgeInsets.only(bottom: 20),
+                      decoration: BoxDecoration(
+                        color: ctx.colors.surfaceBorder,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  Row(
+                    children: [
+                      Icon(Icons.lock_outline_rounded,
+                          color: ctx.colors.error, size: 20),
+                      const SizedBox(width: 10),
+                      Text('Confirm Deletion', style: ctx.text.h4),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Enter your password to permanently delete your account.',
+                    style: ctx.text.bodySmall
+                        .copyWith(color: ctx.colors.textSecondary),
+                  ),
+                  const SizedBox(height: 20),
+                  BrainUpTextField(
+                    controller: passCtrl,
+                    label: 'Password',
+                    obscureText: obscure,
+                    prefixIcon:
+                        const Icon(Icons.lock_outline_rounded),
+                    suffixIcon: IconButton(
+                      icon: Icon(obscure
+                          ? Icons.visibility_outlined
+                          : Icons.visibility_off_outlined),
+                      onPressed: () =>
+                          setSheetState(() => obscure = !obscure),
+                    ),
+                    validator: (v) =>
+                        v == null || v.isEmpty ? 'Required' : null,
+                  ),
+                  const SizedBox(height: 24),
+                  SizedBox(
+                    width: double.infinity,
+                    child: BrainUpButton(
+                      label: 'Delete My Account',
+                      onTap: () async {
+                        if (!formKey.currentState!.validate()) return;
+                        final password = passCtrl.text;
+                        Navigator.pop(ctx);
+                        await _executeDelete(
+                          context,
+                          auth,
+                          password: password,
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Step 2b — for Google users: re-authenticate via Google then delete.
+  Future<void> _deleteWithGoogleReauth(
+      BuildContext context, AuthViewModel auth) async {
+    await _executeDelete(context, auth);
+  }
+
+  /// Final step — calls [AuthViewModel.deleteAccount] and handles the result.
+  Future<void> _executeDelete(
+    BuildContext context,
+    AuthViewModel auth, {
+    String? password,
+  }) async {
+    if (!mounted) return;
+    setState(() => _deletingAccount = true);
+
+    final error = await auth.deleteAccount(password: password);
+
+    if (!mounted) return;
+    setState(() => _deletingAccount = false);
+
+    if (error != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(error),
+          backgroundColor: context.colors.error,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12)),
+        ),
+      );
+    }
+    // On success the AuthViewModel transitions to unauthenticated, which
+    // causes GoRouter's redirect to navigate away from this screen.
   }
 }
 

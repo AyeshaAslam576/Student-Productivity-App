@@ -5,8 +5,8 @@ import 'dart:io';
 import 'package:archive/archive_io.dart';
 import 'package:flutter/material.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
-import 'package:http/http.dart' as http;
 
+import '../../../core/services/groq_service.dart';
 import '../../documents/services/pdf_service.dart';
 import '../models/ai_session_model.dart';
 import '../repositories/ai_session_repository.dart';
@@ -40,11 +40,9 @@ class ChatMessage {
 }
 
 class AiViewModel extends ChangeNotifier {
-  final String groqApiKey;
   final AiSessionRepository _sessionRepo;
 
   AiViewModel({
-    required this.groqApiKey,
     required AiSessionRepository sessionRepository,
   }) : _sessionRepo = sessionRepository {
     _listenToRecentSessions();
@@ -238,42 +236,27 @@ class AiViewModel extends ChangeNotifier {
               })
           .toList();
 
-      final response = await http.post(
-        Uri.parse('https://api.groq.com/openai/v1/chat/completions'),
-        headers: {
-          'Authorization': 'Bearer $groqApiKey',
-          'Content-Type': 'application/json',
-        },
-        body: jsonEncode({
-          'model': 'llama-3.3-70b-versatile',
-          'messages': [
-            {
-              'role': 'system',
-              'content':
-                  'You are an academic assistant helping university students in Pakistan. Be concise, helpful, and encouraging. Answer academic questions clearly.'
-            },
-            ...history,
-          ],
-          'max_tokens': 1024,
-          'temperature': 0.7,
-        }),
+      final response = await GroqService.chat(
+        model: 'llama-3.3-70b-versatile',
+        messages: [
+          {
+            'role': 'system',
+            'content':
+                'You are an academic assistant helping university students in Pakistan. Be concise, helpful, and encouraging. Answer academic questions clearly.'
+          },
+          ...history,
+        ],
+        maxTokens: 1024,
+        temperature: 0.7,
       );
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        final content = data['choices'][0]['message']['content'] as String;
-        _chatMessages.add(ChatMessage(
-          content: content,
-          isUser: false,
-          timestamp: DateTime.now(),
-        ));
-        _chatState = AiState.done;
-        // Upsert the session — same ID throughout the whole conversation.
-        await saveChatSession();
-      } else {
-        _error =
-            'Chat error ${response.statusCode}: ${response.body}';
-        _chatState = AiState.error;
-      }
+      _chatMessages.add(ChatMessage(
+        content: response,
+        isUser: false,
+        timestamp: DateTime.now(),
+      ));
+      _chatState = AiState.done;
+      // Upsert the session — same ID throughout the whole conversation.
+      await saveChatSession();
     } catch (e) {
       _error = e.toString();
       _chatState = AiState.error;
@@ -467,29 +450,18 @@ class AiViewModel extends ChangeNotifier {
     required String model,
     required String systemPrompt,
     required String userMessage,
+    int maxTokens = 2048,
+    double temperature = 0.3,
   }) async {
-    final response = await http.post(
-      Uri.parse('https://api.groq.com/openai/v1/chat/completions'),
-      headers: {
-        'Authorization': 'Bearer $groqApiKey',
-        'Content-Type': 'application/json',
-      },
-      body: jsonEncode({
-        'model': model,
-        'messages': [
-          {'role': 'system', 'content': systemPrompt},
-          {'role': 'user', 'content': userMessage},
-        ],
-        'max_tokens': 2048,
-        'temperature': 0.3,
-      }),
+    return GroqService.chat(
+      model: model,
+      messages: [
+        {'role': 'system', 'content': systemPrompt},
+        {'role': 'user', 'content': userMessage},
+      ],
+      maxTokens: maxTokens,
+      temperature: temperature,
     );
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-      return data['choices'][0]['message']['content'] as String;
-    }
-    throw Exception(
-        'Groq API error ${response.statusCode}: ${response.body}');
   }
 
   String _extractJson(String text) {

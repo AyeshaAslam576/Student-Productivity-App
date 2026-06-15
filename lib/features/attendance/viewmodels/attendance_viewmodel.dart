@@ -4,12 +4,8 @@ import '../repositories/attendance_repository.dart';
 
 class AttendanceViewModel extends ChangeNotifier {
   final AttendanceRepository _repo;
-  final String groqApiKey;
 
-  AttendanceViewModel(
-    this._repo, {
-    this.groqApiKey = '',
-  }) {
+  AttendanceViewModel(this._repo) {
     loadAttendance();
   }
 
